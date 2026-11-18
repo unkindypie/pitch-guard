@@ -1,9 +1,12 @@
 """Continuous-deviation alert timing.
 
 The tracker never counts in-range, silent or unvoiced time toward the alert
-threshold.  A brief in-range frame, silence, or a processing gap longer than
-``max_gap_s`` ends the current episode.  After a buzz the tracker is disarmed
-until voiced pitch has returned inside the range *and* the cooldown has elapsed.
+threshold.  Brief gaps caused by normal speech (unvoiced consonants or a short
+pause) can be bridged without counting their duration, so three seconds of
+actual out-of-range speech still alerts even when the detector drops a few
+frames.  In-range pitch or a silence longer than the bridge window ends the
+episode.  After a buzz the tracker is disarmed until voiced pitch has returned
+inside the range *and* the cooldown has elapsed.
 """
 
 from __future__ import annotations
@@ -34,12 +37,16 @@ class AlertTracker:
         cooldown_s: float = 10.0,
         *,
         max_gap_s: float = 0.35,
+        bridge_s: float = 0.0,
     ) -> None:
         self._duration_s = max(0.0, duration_s)
         self._cooldown_s = max(0.0, cooldown_s)
         self._max_gap_s = max(0.0, max_gap_s)
+        self._bridge_s = max(0.0, bridge_s)
         self._episode_start: float | None = None
         self._episode_first_duration = 0.0
+        self._episode_paused_s = 0.0
+        self._interruption_started: float | None = None
         self._episode_alerted = False
         self._last_out_of_range_at: float | None = None
         self._last_alert_at: float | None = None
@@ -52,6 +59,10 @@ class AlertTracker:
     @property
     def cooldown_s(self) -> float:
         return self._cooldown_s
+
+    @property
+    def bridge_s(self) -> float:
+        return self._bridge_s
 
     @property
     def armed(self) -> bool:
@@ -74,6 +85,8 @@ class AlertTracker:
         """End the current episode but keep cooldown/re-arm state."""
         self._episode_start = None
         self._episode_first_duration = 0.0
+        self._episode_paused_s = 0.0
+        self._interruption_started = None
         self._episode_alerted = False
         self._last_out_of_range_at = None
 
@@ -93,6 +106,8 @@ class AlertTracker:
         if status is RangeStatus.IN_RANGE:
             self._episode_start = None
             self._episode_first_duration = 0.0
+            self._episode_paused_s = 0.0
+            self._interruption_started = None
             self._episode_alerted = False
             self._last_out_of_range_at = None
             if not self._armed and self._cooldown_elapsed(now):
@@ -100,23 +115,41 @@ class AlertTracker:
             return self._decision(False, status, 0.0)
 
         if not status.is_out_of_range:
-            # Silence and unvoiced input break the continuous episode.  They do
-            # not re-arm an alerted tracker; only reliable in-range pitch does.
-            self._episode_start = None
-            self._episode_first_duration = 0.0
-            self._episode_alerted = False
-            self._last_out_of_range_at = None
+            # Unvoiced or silent frames may be a normal gap inside speech.  The
+            # episode survives briefly, but the gap itself never counts toward
+            # the alert duration.  In-range pitch above still resets instantly.
+            if self._episode_start is not None:
+                if self._interruption_started is None:
+                    self._interruption_started = now
+                elif now - self._interruption_started > self._bridge_s:
+                    self.reset_episode()
             return self._decision(False, status, 0.0)
+
+        bridged = False
+        if self._episode_start is not None and self._interruption_started is not None:
+            paused = now - self._interruption_started
+            if paused <= self._bridge_s:
+                self._episode_paused_s += max(0.0, paused)
+                bridged = True
+            else:
+                self.reset_episode()
+            self._interruption_started = None
 
         previous_out = self._last_out_of_range_at
         gap = None if previous_out is None else now - previous_out
-        if self._episode_start is None or gap is None or gap < 0 or gap > self._max_gap_s:
+        if self._episode_start is None or (
+            not bridged and (gap is None or gap < 0 or gap > self._max_gap_s)
+        ):
             self._episode_start = now
             self._episode_first_duration = max(0.0, sample.duration_s)
+            self._episode_paused_s = 0.0
             self._episode_alerted = False
 
         self._last_out_of_range_at = now
-        elapsed = max(0.0, now - self._episode_start + self._episode_first_duration)
+        elapsed = max(
+            0.0,
+            now - self._episode_start + self._episode_first_duration - self._episode_paused_s,
+        )
         should_buzz = False
         if not self._episode_alerted and elapsed + 1e-9 >= self._duration_s:
             if self._armed and self._cooldown_elapsed(now):

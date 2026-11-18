@@ -55,10 +55,13 @@ dashboard, chart, statistics, periodic atomic JSON writes
 
 Rules:
 
-1. A voiced sample outside the range continues an episode if the gap from the
-   previous out-of-range sample is at most `max_gap_s` (350 ms). Longer gaps
-   are treated like missing audio and restart the episode.
-2. Any in-range frame, silence or unvoiced frame ends the episode immediately.
+1. A voiced sample outside the range continues an episode if the processing gap
+   from the previous out-of-range sample is at most `max_gap_s` (350 ms).
+   Larger processing gaps are treated like missing audio and restart the
+   episode.
+2. An in-range frame ends the episode immediately.  Brief silence/unvoiced gaps
+   up to 0.75 s are bridged for natural speech, but their duration is excluded
+   from the elapsed threshold; longer gaps end the episode.
 3. A buzz is emitted once when elapsed audio time reaches the configured
    duration. Further out-of-range samples in the same episode never buzz again.
 4. After a buzz the tracker disarms. It re-arms only after a voiced in-range

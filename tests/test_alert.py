@@ -89,6 +89,36 @@ def test_silence_alone_does_not_rearm_alerted_tracker() -> None:
     assert sum(decision.should_buzz for decision in decisions) == 1
 
 
+def test_brief_speech_gap_is_bridged_without_counting_time() -> None:
+    tracker = AlertTracker(3.0, 10.0, bridge_s=0.75)
+    decisions = feed_range(tracker, 0.0, 1.0, 140.0)
+    decisions += feed_range(tracker, 1.1, 1.6, None)
+    decisions += feed_range(tracker, 1.7, 3.5, 140.0)
+    assert sum(decision.should_buzz for decision in decisions) == 1
+    buzzed = next(decision for decision in decisions if decision.should_buzz)
+    assert buzzed.out_of_range_s == pytest.approx(3.0, abs=0.11)
+
+
+def test_long_speech_gap_resets_episode() -> None:
+    tracker = AlertTracker(3.0, 10.0, bridge_s=0.75)
+    decisions = feed_range(tracker, 0.0, 1.0, 140.0)
+    decisions += feed_range(tracker, 1.1, 1.9, None)
+    decisions += feed_range(tracker, 2.0, 4.8, 140.0)
+    assert not any(decision.should_buzz for decision in decisions)
+    decisions = feed_range(tracker, 4.9, 5.0, 140.0)
+    assert any(decision.should_buzz for decision in decisions)
+
+
+def test_in_range_pitch_resets_even_with_bridge() -> None:
+    tracker = AlertTracker(3.0, 10.0, bridge_s=0.75)
+    decisions = feed_range(tracker, 0.0, 1.0, 140.0)
+    tracker.feed(make_sample(1.1, 200.0))
+    decisions += feed_range(tracker, 1.2, 4.0, 140.0)
+    assert not any(decision.should_buzz for decision in decisions)
+    decisions = feed_range(tracker, 4.1, 4.2, 140.0)
+    assert any(decision.should_buzz for decision in decisions)
+
+
 def test_processing_gap_interrupts_episode() -> None:
     tracker = AlertTracker(3.0, 10.0, max_gap_s=0.35)
     feed_range(tracker, 0.0, 1.5, 140.0, step=0.1)

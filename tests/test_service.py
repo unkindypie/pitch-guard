@@ -65,6 +65,28 @@ def test_service_start_poll_and_single_buzz(tmp_path: Path, source: FakeSource, 
     assert buzzer.play_count == 1
 
 
+def test_service_bridges_brief_speech_gaps(tmp_path: Path, source: FakeSource, buzzer) -> None:
+    service = make_service(tmp_path, source, buzzer)
+    service.start()
+    wall = datetime.now(UTC)
+    measurements = []
+    for index in range(11):
+        measurements.append(
+            make_measurement(index * 0.1, 140.0, timestamp=wall + timedelta(seconds=index * 0.1))
+        )
+    for index in range(11, 16):
+        measurements.append(
+            make_measurement(index * 0.1, None, timestamp=wall + timedelta(seconds=index * 0.1))
+        )
+    for index in range(16, 36):
+        measurements.append(
+            make_measurement(index * 0.1, 140.0, timestamp=wall + timedelta(seconds=index * 0.1))
+        )
+    source.push(measurements)
+    service.poll()
+    assert buzzer.play_count == 1
+
+
 def test_service_ignores_silence_for_alert(tmp_path: Path, source: FakeSource, buzzer) -> None:
     service = make_service(tmp_path, source, buzzer)
     service.start()

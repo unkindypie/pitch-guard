@@ -131,8 +131,10 @@ least the configured duration:
 - 2.9 seconds out of range: no alert with a 3-second threshold.
 - 3 continuous seconds out of range: one buzz.
 - Any in-range pitch frame resets the timer.
-- Silence, unvoiced input, unreliable pitch, or a long processing gap resets the
-  timer. Silence never counts toward the threshold.
+- Brief unvoiced consonants and pauses up to 0.75 seconds are bridged so natural
+  speech still alerts; the gap itself never counts toward the threshold.
+- Any in-range pitch, or a silence/unvoiced gap longer than 0.75 seconds, resets
+  the timer. Silence never counts toward the threshold.
 - Below-minimum and above-maximum pitch use the same behavior.
 - The same episode never buzzes repeatedly. After a buzz the tracker disarms and
   re-arms only after voiced pitch returns in range **and** the cooldown elapses.

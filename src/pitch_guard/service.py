@@ -18,6 +18,7 @@ from pitch_guard.stats import LiveWindow, Period, StatsEngine, StatsSummary
 
 LOG = logging.getLogger("pitch_guard.service")
 AUTOSAVE_INTERVAL_S = 30.0
+ALERT_BRIDGE_S = 0.75
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,7 +57,11 @@ class PitchGuardService:
         self.history = history
         self.live = LiveWindow()
         self.buzzer = buzzer
-        self.alert = alert_tracker or AlertTracker(config.alert_duration_s, config.alert_cooldown_s)
+        self.alert = alert_tracker or AlertTracker(
+            config.alert_duration_s,
+            config.alert_cooldown_s,
+            bridge_s=ALERT_BRIDGE_S,
+        )
         self.alert.configure(self.config.alert_duration_s, self.config.alert_cooldown_s)
         self.stats = StatsEngine(history, self.live)
         self.log = logger or LOG
