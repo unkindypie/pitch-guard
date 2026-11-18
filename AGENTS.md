@@ -23,3 +23,5 @@ A Python-based tool for tracking the pitch of your voice live which will notify 
 
 - Use semantic commit naming, such as `feat: added`, `chore: bumped .. to ..`, `fix: fixed ...`.
 - Commit when a complete fully tested working functionality is developed. Push if remote is connected.
+- Keep good `.gitignore` up to date with all runtime and development artifacts, such as logs, temporary files, and build artifacts.
+- Don't hesitate to commit developer's changes too, don't question just commit all together with yours.
