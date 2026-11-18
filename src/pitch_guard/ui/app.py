@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import statistics
 import time
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar, TypeVar
 
@@ -25,7 +27,7 @@ from pitch_guard.charts import (
     chart_end_label,
     chart_start_label,
 )
-from pitch_guard.config import Config
+from pitch_guard.config import PITCH_CEILING_HZ, PITCH_FLOOR_HZ, PRESET_CUSTOM, Config
 from pitch_guard.models import RangeStatus
 from pitch_guard.service import GuardSnapshot, PitchGuardService
 from pitch_guard.stats import (
@@ -460,6 +462,8 @@ class PitchGuardApp(App[None]):
             devices,
             demo=self.demo,
             on_change=self._auto_apply_config,
+            on_test_buzz=self._test_buzz,
+            on_calibrate=self._calibrate_to_voice,
         )
         screen.set_class(self.ascii_only, "ascii")
         screen.set_class(self.size.width < 72, "narrow")
@@ -472,6 +476,37 @@ class PitchGuardApp(App[None]):
         if not self.demo and validated.microphone != previous_microphone:
             source = MicrophonePitchSource(validated.microphone)
             self.service.set_source(source, validated)
+
+    def _test_buzz(self) -> None:
+        play = getattr(self.service.buzzer, "play", None)
+        if not callable(play):
+            raise RuntimeError("Alert playback is unavailable")
+        play()
+
+    def _calibrate_to_voice(self) -> Config | None:
+        """Set the target range around the median pitch of recent live speech."""
+        now = time.monotonic()
+        voiced = [
+            sample.hz
+            for sample in self.service.live.samples()
+            if sample.voiced and sample.hz is not None and sample.monotonic >= now - 8.0
+        ]
+        if len(voiced) < 10:
+            return None
+        centre = statistics.median(voiced)
+        margin = max(18.0, centre * 0.18)
+        min_hz = max(PITCH_FLOOR_HZ, centre - margin)
+        max_hz = min(PITCH_CEILING_HZ, centre + margin)
+        if max_hz - min_hz < 40.0:
+            min_hz = max(PITCH_FLOOR_HZ, centre - 20.0)
+            max_hz = min(PITCH_CEILING_HZ, centre + 20.0)
+        config = replace(
+            self.service.config,
+            preset=PRESET_CUSTOM,
+            min_hz=round(min_hz, 1),
+            max_hz=round(max_hz, 1),
+        )
+        return self.service.apply_config(config)
 
     def action_quit_app(self) -> None:
         self._shutdown_service()

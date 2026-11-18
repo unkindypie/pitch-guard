@@ -41,6 +41,8 @@ class SettingsScreen(ModalScreen[Config | None]):
         *,
         demo: bool,
         on_change: Callable[[Config], None],
+        on_test_buzz: Callable[[], None],
+        on_calibrate: Callable[[], Config | None],
     ) -> None:
         super().__init__()
         self._config = config
@@ -48,6 +50,8 @@ class SettingsScreen(ModalScreen[Config | None]):
         self._devices = devices
         self._demo = demo
         self._on_change = on_change
+        self._on_test_buzz = on_test_buzz
+        self._on_calibrate = on_calibrate
 
     def compose(self) -> ComposeResult:
         preset_options = [
@@ -143,6 +147,8 @@ class SettingsScreen(ModalScreen[Config | None]):
                 )
             yield Static("", id="settings-status")
             with Horizontal(id="settings-actions"):
+                yield Button("Use voice", id="calibrate")
+                yield Button("Test buzz", id="test-buzz")
                 yield Button("Done", id="done", variant="primary")
             yield Static(
                 "Tab/Shift+Tab move / Arrows / Enter / Esc / Q quit",
@@ -193,6 +199,40 @@ class SettingsScreen(ModalScreen[Config | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done":
             self.action_done()
+        elif event.button.id == "test-buzz":
+            self._test_buzz()
+        elif event.button.id == "calibrate":
+            self._calibrate()
+
+    def _test_buzz(self) -> None:
+        status = self.query_one("#settings-status", Static)
+        try:
+            self._on_test_buzz()
+        except Exception as error:  # noqa: BLE001 - surface output errors in the UI
+            status.update(f"Could not play buzz: {error}")
+            status.add_class("error")
+            status.remove_class("saved")
+            return
+        status.update("Test buzz played")
+        status.remove_class("error")
+        status.add_class("saved")
+
+    def _calibrate(self) -> None:
+        status = self.query_one("#settings-status", Static)
+        config = self._on_calibrate()
+        if config is None:
+            status.update("Speak continuously for a few seconds, then try again")
+            status.add_class("error")
+            status.remove_class("saved")
+            return
+        self._config = config
+        self._valid_config = config
+        self._set_select("preset", config.preset)
+        self._set_input("min-hz", _format_number(config.min_hz))
+        self._set_input("max-hz", _format_number(config.max_hz))
+        status.update(f"Range set to {config.range_label()} (saved)")
+        status.remove_class("error")
+        status.add_class("saved")
 
     def _draft(self) -> Config:
         preset_value = self.query_one("#preset", Select).value

@@ -116,6 +116,12 @@ All settings are validated and saved automatically to
 and never overwrite the last valid configuration. Override the data directory
 with `--data-dir` or `PITCH_GUARD_HOME`; useful for testing and demo automation.
 
+Settings also provides two diagnostics:
+
+- **Use voice** samples the last few seconds of voiced speech and sets a custom
+  target range around your current median pitch (roughly ±18%).
+- **Test buzz** plays the alert at the current volume without changing settings.
+
 ### Alert timing behavior
 
 The buzz only plays after **one continuous out-of-range episode** lasting at

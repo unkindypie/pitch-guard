@@ -231,6 +231,46 @@ async def test_arrow_keys_and_enter_navigate_settings(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_calibrate_to_current_voice_sets_custom_range(tmp_path: Path) -> None:
+    app, source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        push_samples(source, count=30, hz=128.0)
+        await pilot.pause(0.4)
+        config = app._calibrate_to_voice()
+        assert config is not None
+        assert config.preset == "custom"
+        assert config.min_hz < 128.0 < config.max_hz
+        assert service.config.min_hz == config.min_hz
+        assert service.storage.paths.config.exists()
+
+
+@pytest.mark.asyncio
+async def test_calibration_requires_live_speech(tmp_path: Path) -> None:
+    app, _source, _buzzer, _service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        await pilot.pause(0.2)
+        assert app._calibrate_to_voice() is None
+
+
+@pytest.mark.asyncio
+async def test_settings_calibrate_and_test_buzz_buttons(tmp_path: Path) -> None:
+    app, source, buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        push_samples(source, count=30, hz=140.0)
+        await pilot.pause(0.4)
+        await pilot.press("s")
+        await pilot.pause(0.2)
+        await pilot.click("#calibrate")
+        await pilot.pause(0.2)
+        assert service.config.preset == "custom"
+        assert service.config.min_hz < 140.0 < service.config.max_hz
+        before = buzzer.play_count
+        await pilot.click("#test-buzz")
+        await pilot.pause(0.1)
+        assert buzzer.play_count == before + 1
+
+
+@pytest.mark.asyncio
 async def test_q_quits_cleanly_and_stops_service(tmp_path: Path) -> None:
     app, source, buzzer, service = build_app(tmp_path)
     async with app.run_test(size=(110, 34)) as pilot:
