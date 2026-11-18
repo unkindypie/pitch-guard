@@ -1,6 +1,7 @@
 # Pitch-Guard
 
-**Python Background Voice Pitch Tracker.**
+**Python Background Voice Pitch Tracker & notifier.**
+Get a buzz when you're out of your target range.
 
 A Python-based tool for tracking the pitch of your voice live, which notifies
 you when your pitch remains outside a defined range for a certain period of
@@ -100,15 +101,15 @@ tested without audio hardware. A `DEMO` badge is always visible.
 
 Open settings with `S`. The interactive screen provides:
 
-| Setting | Default | Notes |
-| --- | --- | --- |
-| Pitch range preset | Default | Default 170–250, Lower 100–180, Higher 220–330, Custom |
-| Minimum pitch | 170 Hz | 50–600 Hz; must be below maximum |
-| Maximum pitch | 250 Hz | 50–600 Hz; must be above minimum |
-| Alert duration | 3.0 s | 0.5–60 s of one continuous out-of-range episode |
-| Alert cooldown | 10.0 s | 0–600 s before the timer can re-arm |
-| Microphone | System default | Device name; falls back safely if disconnected |
-| Alert volume | 70 | 0–100; 0 mutes the generated buzz |
+| Setting            | Default        | Notes                                                  |
+| ------------------ | -------------- | ------------------------------------------------------ |
+| Pitch range preset | Default        | Default 170–250, Lower 100–180, Higher 220–330, Custom |
+| Minimum pitch      | 170 Hz         | 50–600 Hz; must be below maximum                       |
+| Maximum pitch      | 250 Hz         | 50–600 Hz; must be above minimum                       |
+| Alert duration     | 3.0 s          | 0.5–60 s of one continuous out-of-range episode        |
+| Alert cooldown     | 10.0 s         | 0–600 s before the timer can re-arm                    |
+| Microphone         | System default | Device name; falls back safely if disconnected         |
+| Alert volume       | 70             | 0–100; 0 mutes the generated buzz                      |
 
 All settings are validated and saved automatically to
 `~/.pitch-guard/config.json`. Invalid values are rejected in the settings screen
@@ -135,21 +136,21 @@ duration.
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-| --- | --- |
-| `1` | Live chart — last 60 seconds |
-| `2` | Day chart — today |
-| `3` | Week chart — last 7 days |
-| `4` | Month chart — last 30 days |
-| `5` | 90-day chart — last 90 days |
-| `S` | Open settings |
-| `Space` | Pause / resume monitoring |
-| `Tab` / `Shift+Tab` | Move focus between controls |
-| Arrow keys | Navigate menus and settings choices |
-| `Enter` | Select / confirm |
-| `Esc` | Return to the dashboard |
-| `Q` | Quit cleanly |
-| `Ctrl+C` | Quit cleanly |
+| Key                 | Action                              |
+| ------------------- | ----------------------------------- |
+| `1`                 | Live chart — last 60 seconds        |
+| `2`                 | Day chart — today                   |
+| `3`                 | Week chart — last 7 days            |
+| `4`                 | Month chart — last 30 days          |
+| `5`                 | 90-day chart — last 90 days         |
+| `S`                 | Open settings                       |
+| `Space`             | Pause / resume monitoring           |
+| `Tab` / `Shift+Tab` | Move focus between controls         |
+| Arrow keys          | Navigate menus and settings choices |
+| `Enter`             | Select / confirm                    |
+| `Esc`               | Return to the dashboard             |
+| `Q`                 | Quit cleanly                        |
+| `Ctrl+C`            | Quit cleanly                        |
 
 The dashboard footer shows the compact set of shortcuts. Numeric, `S` and
 `Space` shortcuts do not fire while an input field is being edited.

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from math import ceil, floor
+from math import ceil, floor, log10
 
 from pitch_guard.aggregation import Bucket
 from pitch_guard.models import ClassifiedSample
@@ -169,10 +169,11 @@ def nice_ticks(low: float, high: float, count: int = 4) -> list[float]:
         count = 2
     span = high - low
     raw_step = span / (count - 1)
-    magnitude = 10.0 ** max(0, floor(__import__("math").log10(raw_step)))
+    magnitude = 10.0 ** max(0, floor(log10(raw_step)))
     choices = (1.0, 2.0, 2.5, 5.0, 10.0)
-    step = next(
-        (choice * magnitude for choice in choices if choice * magnitude >= raw_step), magnitude * 10
+    step = min(
+        (choice * magnitude for choice in choices),
+        key=lambda candidate: abs(candidate - raw_step),
     )
     start = ceil(low / step) * step
     ticks: list[float] = []

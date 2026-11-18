@@ -159,7 +159,8 @@ class PitchChart(Widget):
         labelled_rows: set[int] = set()
         for row in range(plot_height):
             put(row, margin - 1, self._chars["vertical"], "axis")
-        for tick in nice_ticks(low, high, 4):
+        tick_count = min(6, max(4, plot_height // 2 + 1))
+        for tick in nice_ticks(low, high, tick_count):
             if not low <= tick <= high:
                 continue
             row = self._y_row(tick, low, high, plot_height)

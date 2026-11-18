@@ -95,6 +95,7 @@ def test_nice_bounds_include_targets_and_ticks() -> None:
     ticks = nice_ticks(low, high, 4)
     assert len(ticks) >= 3
     assert all(low <= tick <= high for tick in ticks)
+    assert len(nice_ticks(140.0, 280.0, 6)) >= 5
 
 
 def test_chart_labels() -> None:
@@ -145,6 +146,7 @@ async def test_chart_renders_axis_targets_and_data() -> None:
         assert "60s ago" in rendered
         assert "now" in rendered
         assert rendered.count("•") >= 10
+        assert rendered.count("┤") >= 5
         assert "╱" not in rendered
         assert "╲" not in rendered
 
