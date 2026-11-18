@@ -90,6 +90,13 @@ On launch, the dashboard starts monitoring immediately. Press `Space` to pause,
 quit cleanly. Settings are applied immediately and saved atomically; monitoring
 and statistics stop before the process exits.
 
+### Demo mode
+
+`--demo` never touches a microphone and never persists to your real data
+directory. It uses a repeating 60-second speech-like trace and seeded
+statistics for the chart periods, so the interface can be demonstrated and
+tested without audio hardware. A `DEMO` badge is always visible.
+
 ## Configuration
 
 Open settings with `S`. The interactive screen provides:
