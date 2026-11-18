@@ -14,9 +14,9 @@ from pitch_guard.storage import (
     schema_version,
 )
 
-DEFAULT_MIN_HZ: Final[float] = 170.0
+DEFAULT_MIN_HZ: Final[float] = 150.0
 DEFAULT_MAX_HZ: Final[float] = 250.0
-DEFAULT_ALERT_DURATION_S: Final[float] = 3.0
+DEFAULT_ALERT_DURATION_S: Final[float] = 1.0
 DEFAULT_ALERT_COOLDOWN_S: Final[float] = 10.0
 DEFAULT_VOLUME: Final[int] = 70
 DEFAULT_IDLE_TIMEOUT_S: Final[float] = 60.0
@@ -42,7 +42,7 @@ PITCH_PRESETS: Final[dict[str, tuple[float, float]]] = {
 }
 
 PRESET_LABELS: Final[dict[str, str]] = {
-    PRESET_DEFAULT: "Default 170-250 Hz",
+    PRESET_DEFAULT: "Default 150-250 Hz",
     PRESET_LOW: "Lower 100-180 Hz",
     PRESET_HIGH: "Higher 220-330 Hz",
     PRESET_CUSTOM: "Custom range",

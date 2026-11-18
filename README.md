@@ -18,7 +18,7 @@ your real history.
 - Starts monitoring the default microphone automatically (or a selected device).
 - YIN-based fundamental-frequency (F0) estimation with silence, noise and
   unvoiced-frame rejection.
-- Default target range **170–250 Hz**, inclusive.
+- Default target range **150–250 Hz**, inclusive.
 - Presets for lower/higher voices plus a fully custom range.
 - Continuous-deviation alert timer with configurable duration and cooldown.
 - One short generated “bzz” per episode, with optional volume/mute.
@@ -123,16 +123,17 @@ Open settings with `S`. The interactive screen provides:
 
 | Setting            | Default        | Notes                                                  |
 | ------------------ | -------------- | ------------------------------------------------------ |
-| Pitch range preset | Default        | Default 170–250, Lower 100–180, Higher 220–330, Custom |
-| Minimum pitch      | 170 Hz         | 50–600 Hz; must be below maximum                       |
+| Pitch range preset | Default        | Default 150–250, Lower 100–180, Higher 220–330, Custom |
+| Minimum pitch      | 150 Hz         | 50–600 Hz; must be below maximum                       |
 | Maximum pitch      | 250 Hz         | 50–600 Hz; must be above minimum                       |
-| Alert duration     | 3.0 s          | 0.5–60 s of one continuous out-of-range episode        |
+| Alert duration     | 1.0 s          | 0.5–60 s of one continuous out-of-range episode        |
 | Alert cooldown     | 10.0 s         | 0–600 s before the timer can re-arm                    |
 | Microphone         | System default | Device name; falls back safely if disconnected         |
 | Alert volume       | 70             | 0–100; 0 mutes the generated buzz                      |
 
-All settings are validated and saved automatically to
-`~/.pitch-guard/config.json`. Invalid values are rejected in the settings screen
+Fresh installations use 150–250 Hz and a 1.0-second alert threshold. Existing
+saved configurations keep their values until changed. All settings are validated
+and saved automatically to `~/.pitch-guard/config.json`. Invalid values are rejected in the settings screen
 and never overwrite the last valid configuration. Override the data directory
 with `--data-dir` or `PITCH_GUARD_HOME`; useful for testing and demo automation.
 
@@ -148,8 +149,8 @@ The buzz only plays after **one continuous out-of-range episode** lasting at
 least the configured duration:
 
 - 1 second out of range, then back in range: no alert.
-- 2.9 seconds out of range: no alert with a 3-second threshold.
-- 3 continuous seconds out of range: one buzz.
+- 0.9 seconds out of range: no alert with the default 1-second threshold.
+- 1 continuous second out of range: one buzz.
 - Any in-range pitch frame resets the timer.
 - Brief unvoiced consonants and pauses up to 0.75 seconds are bridged so natural
   speech still alerts; the gap itself never counts toward the threshold.

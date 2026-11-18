@@ -172,7 +172,7 @@ async def test_invalid_settings_are_not_saved(tmp_path: Path) -> None:
         min_input.value = "300"
         await pilot.pause(0.2)
         # 300 is above the current max, so the last valid value stays active.
-        assert service.config.min_hz == 170.0
+        assert service.config.min_hz == 150.0
         status = str(settings.query_one("#settings-status", Static).content)
         assert "lower" in status
 

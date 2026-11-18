@@ -33,9 +33,9 @@ from tests.conftest import BASE_TIME, make_sample
 
 def test_config_defaults_match_requirements() -> None:
     config = Config()
-    assert config.min_hz == DEFAULT_MIN_HZ == 170.0
+    assert config.min_hz == DEFAULT_MIN_HZ == 150.0
     assert config.max_hz == DEFAULT_MAX_HZ == 250.0
-    assert config.alert_duration_s == 3.0
+    assert config.alert_duration_s == 1.0
     assert config.idle_timeout_s == 60.0
     assert config.preset == PRESET_DEFAULT
 
