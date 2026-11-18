@@ -13,6 +13,7 @@ from pitch_guard.aggregation import History
 from pitch_guard.config import Config
 from pitch_guard.persistence import PitchGuardStorage
 from pitch_guard.service import PitchGuardService
+from pitch_guard.stats import Period
 from pitch_guard.storage import DataPaths
 from pitch_guard.ui.app import PITCH_GUARD_THEME, PitchGuardApp
 from pitch_guard.ui.chart import PitchChart
@@ -282,6 +283,20 @@ async def test_q_quits_cleanly_and_stops_service(tmp_path: Path) -> None:
         assert source.stopped >= 1
         assert buzzer.closed is True
         assert service.storage.paths.history.exists()
+
+
+@pytest.mark.asyncio
+async def test_historical_chart_shows_alert_markers(tmp_path: Path) -> None:
+    app, source, buzzer, _service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        push_samples(source, count=40, hz=140.0)
+        await pilot.pause(0.5)
+        assert buzzer.play_count >= 1
+        app.period = Period.DAY
+        app._refresh_all(force=True)
+        chart = app.query_one("#chart", PitchChart)
+        assert chart._data is not None
+        assert chart._data.alerts
 
 
 @pytest.mark.asyncio

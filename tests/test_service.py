@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from pitch_guard.aggregation import History
 from pitch_guard.config import Config
 from pitch_guard.models import RangeStatus
@@ -59,6 +61,11 @@ def test_service_start_poll_and_single_buzz(tmp_path: Path, source: FakeSource, 
     assert len(samples) == 33
     assert buzzer.play_count == 1
     assert service.alerts_session == 1
+    alerts = service.recent_alerts(
+        datetime.now(UTC) - timedelta(minutes=1), datetime.now(UTC) + timedelta(minutes=1)
+    )
+    assert len(alerts) == 1
+    assert alerts[0].hz == pytest.approx(140.0)
     assert service.snapshot().status is RangeStatus.BELOW
     push_episode(source, 3.3, 6.0, 140.0)
     service.poll()

@@ -82,6 +82,14 @@ class PitchMeasurement:
 
 
 @dataclass(frozen=True, slots=True)
+class AlertEvent:
+    """A wall-clock alert marker for chart rendering."""
+
+    timestamp: datetime
+    hz: float
+
+
+@dataclass(frozen=True, slots=True)
 class ClassifiedSample:
     """A pitch measurement with its target-range classification."""
 

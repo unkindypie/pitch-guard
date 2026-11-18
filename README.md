@@ -25,6 +25,8 @@ your real history.
 - Live, Day, Week, Month and 90-day dotted charts with target reference lines,
   average line and silence gaps. The Live view aggregates completed one-second
   buckets and repaints only when the visible dots change, avoiding flicker.
+- Alerts appear as large red dots on the chart; Live markers use the exact alert
+  time, while historical markers use the alert's aggregation bucket midpoint.
 - Time-weighted average, median, monitoring/speaking time, in-range percentage,
   alert count, previous-period improvement, daily streaks and personal bests.
 - Local JSON storage only; no accounts, cloud, telemetry, or raw audio files.

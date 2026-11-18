@@ -117,6 +117,9 @@ a temporary file, `fsync`, and atomic replacement. Corrupt files are copied to
 - Live chart points are completed one-second buckets, not raw frames, so the
   newest dot does not jitter on every audio callback.
 - The chart repaints only when its visible character grid actually changes.
+- Alert markers use a large red dot. Live alerts carry exact wall-clock
+  timestamps; historical markers are placed at the midpoint of the bucket that
+  recorded the alert count.
 - Narrow terminals get a numeric chart fallback.
 - `--ascii` and automatic encoding detection switch borders and chart glyphs.
 - The App-level event hook tracks keyboard, mouse and paste activity. After 60

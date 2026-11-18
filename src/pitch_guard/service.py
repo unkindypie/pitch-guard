@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -12,7 +13,7 @@ from pitch_guard.alert import AlertTracker
 from pitch_guard.audio.capture import PitchSource
 from pitch_guard.audio.playback import Buzzer
 from pitch_guard.config import Config
-from pitch_guard.models import ClassifiedSample, RangeStatus, classify_measurement
+from pitch_guard.models import AlertEvent, ClassifiedSample, RangeStatus, classify_measurement
 from pitch_guard.persistence import PitchGuardStorage
 from pitch_guard.stats import LiveWindow, Period, StatsEngine, StatsSummary
 
@@ -67,6 +68,7 @@ class PitchGuardService:
         self.log = logger or LOG
         self.paused = False
         self.alerts_session = 0
+        self._alert_events: deque[AlertEvent] = deque(maxlen=512)
         self._last_save = time.monotonic()
         self._last_decision_progress = 0.0
         self._last_out_of_range_s = 0.0
@@ -156,6 +158,8 @@ class PitchGuardService:
             if decision.should_buzz:
                 self.alerts_session += 1
                 self.history.add_alert(sample.timestamp)
+                if sample.hz is not None:
+                    self._alert_events.append(AlertEvent(sample.timestamp, sample.hz))
                 try:
                     self.buzzer.play()
                 except Exception:
@@ -186,6 +190,10 @@ class PitchGuardService:
     def daily_summaries(self, now: datetime | None = None) -> list[DailySummary]:
         """Compute day rollups for streaks and personal bests."""
         return self.history.daily_summaries(now)
+
+    def recent_alerts(self, start: datetime, end: datetime) -> list[AlertEvent]:
+        """Return precise alert events inside a wall-clock window."""
+        return [event for event in self._alert_events if start <= event.timestamp <= end]
 
     def summary(
         self,

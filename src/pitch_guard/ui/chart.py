@@ -28,6 +28,7 @@ UNICODE_CHARS = {
     "threshold": "┄",
     "average": "┈",
     "point": "•",
+    "alert": "●",
 }
 ASCII_CHARS = {
     "vertical": "|",
@@ -37,6 +38,7 @@ ASCII_CHARS = {
     "threshold": "-",
     "average": ".",
     "point": "*",
+    "alert": "@",
 }
 
 MIN_WIDTH = 36
@@ -57,6 +59,7 @@ class ChartData:
     in_range_pct: float | None
     start_label: str
     end_label: str
+    alerts: tuple[ChartPoint, ...] = ()
 
 
 class PitchChart(Widget):
@@ -74,6 +77,7 @@ class PitchChart(Widget):
     PitchChart > .chart--threshold { color: $warning; }
     PitchChart > .chart--average { color: $accent 70%; }
     PitchChart > .chart--data { color: $accent; }
+    PitchChart > .chart--alert { color: $error; text-style: bold; }
     PitchChart > .chart--label { color: $text-muted; }
     """
 
@@ -82,6 +86,7 @@ class PitchChart(Widget):
         "chart--threshold",
         "chart--average",
         "chart--data",
+        "chart--alert",
         "chart--label",
     }
 
@@ -140,6 +145,7 @@ class PitchChart(Widget):
             "threshold": self._style("chart--threshold", "yellow"),
             "average": self._style("chart--average", "cyan"),
             "data": self._style("chart--data", "green"),
+            "alert": self._style("chart--alert", "red"),
             "label": self._style("chart--label", "grey62"),
         }
         low, high = self._resolve_scale(data)
@@ -207,6 +213,13 @@ class PitchChart(Widget):
             any_points = True
             for row, column in compressed:
                 put(row, column, self._chars["point"], "data")
+
+        for alert in data.alerts:
+            if not data.start <= alert.timestamp <= data.end:
+                continue
+            row = self._y_row(min(high, max(low, alert.hz)), low, high, plot_height)
+            column = self._x_column(alert.timestamp, data.start, data.end, margin, plot_width)
+            put(row, column, self._chars["alert"], "alert")
 
         if not any_points:
             message = "waiting for voiced pitch"

@@ -22,6 +22,7 @@ from textual.widgets import Static
 from pitch_guard.aggregation import DailySummary
 from pitch_guard.audio.capture import MicrophonePitchSource, query_input_devices
 from pitch_guard.charts import (
+    ChartPoint,
     build_history_series,
     build_live_series,
     chart_end_label,
@@ -374,6 +375,7 @@ class PitchGuardApp(App[None]):
     ) -> None:
         now = datetime.now(UTC)
         mono_now = time.monotonic()
+        alerts: list[ChartPoint] = []
         if self.period is Period.LIVE:
             completed_second = float(int(mono_now))
             if not force and completed_second == self._live_chart_bucket_end:
@@ -389,6 +391,10 @@ class PitchGuardApp(App[None]):
                 completed_second,
                 bucket_seconds=1.0,
             )
+            alerts = [
+                ChartPoint(event.timestamp, event.hz)
+                for event in self.service.recent_alerts(window_start, window_end)
+            ]
         else:
             window = period_window(self.period, now)
             if summary is None:
@@ -397,6 +403,15 @@ class PitchGuardApp(App[None]):
             series = build_history_series(buckets, window.start, window.end)
             window_start = window.start
             window_end = window.end
+            for bucket in buckets:
+                if bucket.alerts <= 0:
+                    continue
+                avg_hz = bucket.totals.avg_hz
+                if avg_hz is None:
+                    continue
+                midpoint = min(bucket.start + (bucket.end - bucket.start) / 2, now)
+                if window_start <= midpoint <= window_end:
+                    alerts.append(ChartPoint(midpoint, avg_hz))
         data = ChartData(
             period_label=self.period.label,
             start=window_start,
@@ -408,6 +423,7 @@ class PitchGuardApp(App[None]):
             in_range_pct=summary.in_range_pct,
             start_label=chart_start_label(self.period.label, window_start, window_end),
             end_label=chart_end_label(self.period.label, window_end),
+            alerts=tuple(alerts),
         )
         self._base_query("#chart", PitchChart).set_data(data)
         title = f"[bold]Pitch History[/]  [dim]{self.period.label} · {self.period.detail}[/]"

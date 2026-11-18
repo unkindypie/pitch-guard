@@ -152,6 +152,31 @@ async def test_chart_renders_axis_targets_and_data() -> None:
 
 
 @pytest.mark.asyncio
+async def test_chart_renders_alert_marker() -> None:
+    app = ChartHost()
+    async with app.run_test(size=(80, 18)) as pilot:
+        chart = app.query_one("#chart", PitchChart)
+        data = chart_data()
+        alerted = ChartData(
+            period_label=data.period_label,
+            start=data.start,
+            end=data.end,
+            series=data.series,
+            target_min=data.target_min,
+            target_max=data.target_max,
+            avg_hz=data.avg_hz,
+            in_range_pct=data.in_range_pct,
+            start_label=data.start_label,
+            end_label=data.end_label,
+            alerts=(ChartPoint(NOW - timedelta(seconds=30), 220.0),),
+        )
+        chart.set_data(alerted)
+        await pilot.pause()
+        rendered = chart.render().plain
+        assert "●" in rendered
+
+
+@pytest.mark.asyncio
 async def test_chart_scale_stays_stable_while_live_data_moves() -> None:
     app = ChartHost()
     async with app.run_test(size=(80, 18)) as pilot:
