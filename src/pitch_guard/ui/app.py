@@ -52,6 +52,7 @@ COLOR_ERROR = "#f7768e"
 COLOR_ACCENT = "#d17aa4"
 COLOR_MUTED = "#7f8c98"
 COLOR_TEXT = "#c0caf5"
+IDLE_TIMEOUT_S = 60.0
 
 PITCH_GUARD_THEME = Theme(
     name="pitch-guard",
@@ -113,6 +114,9 @@ class PitchGuardApp(App[None]):
         self._footer_width = 0
         self._source_error_seen: str | None = None
         self._dashboard: Screen | None = None
+        self._idle_mode = False
+        self._last_activity = time.monotonic()
+        self._last_idle_content = ""
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="topbar"):
@@ -126,7 +130,9 @@ class PitchGuardApp(App[None]):
             with Horizontal(id="chart-header"):
                 yield Static("", id="chart-title")
                 yield Static("", id="chart-meta")
-            yield PitchChart(ascii_only=self.ascii_only, id="chart")
+            with Vertical(id="chart-body"):
+                yield PitchChart(ascii_only=self.ascii_only, id="chart")
+                yield Static("", id="idle-overlay")
         with Vertical(id="stats-panel"):
             with Vertical(id="stats-grid"):
                 for index in range(8):
@@ -136,6 +142,7 @@ class PitchGuardApp(App[None]):
 
     def on_mount(self) -> None:
         self._dashboard = self.screen
+        self._last_activity = time.monotonic()
         self.register_theme(PITCH_GUARD_THEME)
         self.theme = PITCH_GUARD_THEME.name
         self._apply_capabilities()
@@ -146,6 +153,87 @@ class PitchGuardApp(App[None]):
         self.set_interval(0.1, self._tick)
         self.set_interval(1.0, self._stats_tick)
 
+    async def on_event(self, event: events.Event) -> None:
+        if isinstance(event, (events.Key, events.MouseEvent, events.Paste, events.AppFocus)):
+            if self._idle_mode and isinstance(event, events.Key) and event.key == "space":
+                # Space wakes the app but should not immediately toggle it back
+                # into manual pause after the automatic resume.
+                self._leave_idle()
+                event.stop()
+                return
+            self._note_activity()
+        await super().on_event(event)
+
+    def _note_activity(self) -> None:
+        self._last_activity = time.monotonic()
+        if self._idle_mode:
+            self._leave_idle()
+
+    def _check_idle(self) -> None:
+        if self._idle_mode or self._shutdown_done or self.service.paused:
+            return
+        if time.monotonic() - self._last_activity >= IDLE_TIMEOUT_S:
+            self._enter_idle()
+
+    def _enter_idle(self) -> None:
+        if self._idle_mode or self.service.paused:
+            return
+        self.service.pause()
+        self._idle_mode = True
+        self._apply_idle_class()
+        self.call_after_refresh(self._update_idle_overlay)
+        self._last_footer = ""
+        self._update_footer()
+        self._last_stats = None
+        self._refresh_all(force=True)
+        LOG.info("Idle mode: no keyboard or mouse activity for %.0fs", IDLE_TIMEOUT_S)
+
+    def _leave_idle(self) -> None:
+        if not self._idle_mode:
+            return
+        self._idle_mode = False
+        self._apply_idle_class()
+        if self.service.paused:
+            self.service.resume()
+        self._last_footer = ""
+        self._update_footer()
+        self._last_stats = None
+        self._refresh_all(force=True)
+        LOG.info("Idle mode ended; monitoring resumed")
+
+    def _apply_idle_class(self) -> None:
+        dashboard = self._dashboard or self.screen
+        dashboard.set_class(self._idle_mode, "idle")
+
+    def _update_idle_overlay(self) -> None:
+        overlay = self._base_query("#idle-overlay", Static)
+        body = self._base_query("#chart-body", Vertical)
+        width = body.size.width
+        height = body.size.height
+        if self.ascii_only or width < 32 or height < 8:
+            content = (
+                f"[bold {COLOR_ACCENT}]IDLE[/]\n"
+                "[dim]Monitoring paused after 1 minute\n"
+                "Press any key or move the mouse to resume[/]"
+            )
+        else:
+            banner = (
+                "█████ ████  █     █████\n"
+                "  █   █  █  █     █    \n"
+                "  █   █  █  █     ███  \n"
+                "  █   █  █  █     █    \n"
+                "█████ ████  █████ █████"
+            )
+            content = (
+                f"[bold {COLOR_ACCENT}]{banner}[/]\n\n"
+                "[dim]No keyboard or mouse activity for 1 minute.\n"
+                "Monitoring is paused to save resources.\n"
+                "Press any key or move the mouse to resume.[/]"
+            )
+        if content != self._last_idle_content:
+            overlay.update(content)
+            self._last_idle_content = content
+
     def on_resize(self, event: events.Resize) -> None:
         width = event.size.width
         height = event.size.height
@@ -155,6 +243,8 @@ class PitchGuardApp(App[None]):
             screen.set_class(height < 27, "short")
         self._update_footer(width)
         self._base_query("#chart", PitchChart).set_ascii(self.ascii_only or width < 40)
+        if self._idle_mode:
+            self._update_idle_overlay()
 
     def on_unmount(self) -> None:
         self._shutdown_service()
@@ -176,6 +266,8 @@ class PitchGuardApp(App[None]):
         self._base_query("#chart", PitchChart).set_ascii(self.ascii_only)
 
     def _tick(self) -> None:
+        if self._idle_mode:
+            return
         try:
             self.service.poll()
         except Exception:
@@ -186,6 +278,9 @@ class PitchGuardApp(App[None]):
             self._refresh_chart(snapshot, render_stats=False)
 
     def _stats_tick(self) -> None:
+        self._check_idle()
+        if self._idle_mode:
+            return
         if self.size.width != self._footer_width:
             self._update_footer(self.size.width)
         mon = time.monotonic()
@@ -236,15 +331,20 @@ class PitchGuardApp(App[None]):
 
         current = snapshot.current
         current_hz = current.hz if current is not None and current.voiced else None
-        current_value = format_hz(current_hz) if current_hz is not None else self._dash()
-        current_note = "paused" if snapshot.paused else snapshot.status.label.lower()
-        current_color = self._status_color(snapshot.status)
+        if self._idle_mode:
+            current_value = self._dash()
+            current_note = "no input for 1m"
+            current_color = COLOR_ACCENT
+        else:
+            current_value = format_hz(current_hz) if current_hz is not None else self._dash()
+            current_note = "paused" if snapshot.paused else snapshot.status.label.lower()
+            current_color = self._status_color(snapshot.status)
 
         avg = self._last_stats.avg_hz if self._last_stats else None
         avg_value = format_hz(avg)
         avg_note = f"{self.period.label.lower()} average"
 
-        status_value = snapshot.status.label
+        status_value = "IDLE" if self._idle_mode else snapshot.status.label
         status_note = self._alert_note(snapshot)
         alert_value = str(self.service.alerts_session)
         alert_note = "this session"
@@ -362,6 +462,8 @@ class PitchGuardApp(App[None]):
         self._base_query("#stats-note", Static).update("[dim]" + separator.join(note_parts) + "[/]")
 
     def _status_text(self, snapshot: GuardSnapshot) -> tuple[str, str]:
+        if self._idle_mode:
+            return "IDLE", COLOR_ACCENT
         if snapshot.source_error:
             return "AUDIO ERROR", COLOR_ERROR
         if snapshot.paused:
@@ -384,6 +486,8 @@ class PitchGuardApp(App[None]):
         return separator.join(parts)
 
     def _alert_note(self, snapshot: GuardSnapshot) -> str:
+        if self._idle_mode:
+            return "any key to resume"
         if snapshot.paused:
             return "monitoring paused"
         if snapshot.source_error:
@@ -430,7 +534,9 @@ class PitchGuardApp(App[None]):
 
     def _update_footer(self, width: int | None = None) -> None:
         terminal_width = width or self.size.width
-        if terminal_width < 44:
+        if self._idle_mode:
+            footer = "IDLE — press any key or move the mouse to resume"
+        elif terminal_width < 44:
             footer = "1-5 Chart  S  Space  Q"
         elif terminal_width < 82:
             footer = "1-5 Chart   S Settings   Space Pause   Q Quit"
@@ -451,6 +557,9 @@ class PitchGuardApp(App[None]):
         self._refresh_all(force=True)
 
     def action_toggle_pause(self) -> None:
+        if self._idle_mode:
+            self._leave_idle()
+            return
         self.service.toggle_pause()
         self._last_stats = None
         self._refresh_all(force=True)

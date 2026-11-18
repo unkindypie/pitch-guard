@@ -68,9 +68,34 @@ Screen {
     text-align: right;
 }
 
+#chart-body {
+    height: 1fr;
+    min-height: 4;
+}
+
 #chart {
     height: 1fr;
     min-height: 4;
+}
+
+#idle-overlay {
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+    text-align: center;
+    background: ansi_default;
+    color: $accent;
+    padding: 1 2;
+}
+
+Screen.idle #idle-overlay {
+    display: block;
+}
+
+Screen.idle #stats-panel {
+    display: none;
 }
 
 #stats-panel {

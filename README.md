@@ -31,6 +31,8 @@ your real history.
 - Responsive Textual dashboard with narrow-terminal numeric fallback and an
   optional ASCII rendering mode.
 - Demo mode with deterministic simulated pitch and seeded history.
+- Idle mode after 60 seconds without keyboard/mouse activity: audio analysis
+  stops and a large “IDLE” overlay explains how to resume.
 - Keyboard-first settings screen with automatic saving.
 
 ## Easy one command install (Linux, Windows, macOS)
@@ -97,7 +99,12 @@ lists. The installed command sets its OS process title to `pitch-guard`, so tmux
 
 On launch, the dashboard starts monitoring immediately. Press `Space` to pause,
 `S` for settings, number keys to switch the chart period, and `Q` or `Ctrl+C` to
-quit cleanly. Settings are applied immediately and saved atomically; monitoring
+quit cleanly.
+
+If there is no keyboard or mouse activity for one minute, Pitch-Guard enters
+**IDLE** mode: microphone analysis stops, the statistics panel is hidden, and a
+large centered overlay appears over the chart. Press any key or move the mouse to
+resume. A manual pause is never overwritten by idle mode. Settings are applied immediately and saved atomically; monitoring
 and statistics stop before the process exits.
 
 ### Demo mode

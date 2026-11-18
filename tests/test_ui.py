@@ -285,6 +285,59 @@ async def test_q_quits_cleanly_and_stops_service(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_idle_mode_pauses_analysis_and_shows_overlay(tmp_path: Path) -> None:
+    app, source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause(0.3)
+        app._last_activity = time.monotonic() - 61.0
+        app._check_idle()
+        await pilot.pause(0.3)
+        assert app._idle_mode is True
+        assert service.paused is True
+        assert source.running is False
+        assert app.screen.has_class("idle")
+        overlay = str(app.screen.query_one("#idle-overlay", Static).content)
+        assert "IDLE" in overlay or "██" in overlay
+        assert "Press any key" in overlay or "resume" in overlay
+        assert "IDLE" in str(app.query_one("#status", Static).content)
+        assert app.screen.query_one("#stats-panel").display is False
+        await pilot.press("a")
+        await pilot.pause(0.3)
+        assert app._idle_mode is False
+        assert service.paused is False
+        assert source.running is True
+        assert not app.screen.has_class("idle")
+
+
+@pytest.mark.asyncio
+async def test_idle_mode_space_resumes_without_repausing(tmp_path: Path) -> None:
+    app, _source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause(0.2)
+        app._last_activity = time.monotonic() - 61.0
+        app._check_idle()
+        await pilot.pause(0.2)
+        assert app._idle_mode
+        await pilot.press("space")
+        await pilot.pause(0.2)
+        assert app._idle_mode is False
+        assert service.paused is False
+
+
+@pytest.mark.asyncio
+async def test_idle_mode_does_not_override_manual_pause(tmp_path: Path) -> None:
+    app, _source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause(0.2)
+        service.pause()
+        app._last_activity = time.monotonic() - 61.0
+        app._check_idle()
+        await pilot.pause(0.1)
+        assert app._idle_mode is False
+        assert service.paused is True
+
+
+@pytest.mark.asyncio
 async def test_narrow_terminal_uses_fallback_and_narrow_class(tmp_path: Path) -> None:
     app, _source, _buzzer, _service = build_app(tmp_path)
     async with app.run_test(size=(60, 24)) as pilot:
