@@ -50,6 +50,7 @@ COLOR_ERROR = "#f7768e"
 COLOR_ACCENT = "#7dcfff"
 COLOR_MUTED = "#7f8c98"
 COLOR_TEXT = "#c0caf5"
+LIVE_CHART_REFRESH_S = 0.1
 
 PITCH_GUARD_THEME = Theme(
     name="pitch-guard",
@@ -109,6 +110,8 @@ class PitchGuardApp(App[None]):
         self._last_status = ""
         self._last_title = ""
         self._last_footer = ""
+        self._last_chart_title = ""
+        self._last_chart_meta = ""
         self._footer_width = 0
         self._source_error_seen: str | None = None
         self._dashboard: Screen | None = None
@@ -181,8 +184,11 @@ class PitchGuardApp(App[None]):
             LOG.exception("Failed to process audio measurements")
         snapshot = self.service.snapshot()
         self._render_snapshot(snapshot, time.monotonic())
-        if self.period is Period.LIVE and time.monotonic() - self._last_chart_refresh >= 0.25:
-            self._refresh_chart(snapshot)
+        if (
+            self.period is Period.LIVE
+            and time.monotonic() - self._last_chart_refresh >= LIVE_CHART_REFRESH_S
+        ):
+            self._refresh_chart(snapshot, render_stats=False)
 
     def _stats_tick(self) -> None:
         if self.size.width != self._footer_width:
@@ -199,7 +205,7 @@ class PitchGuardApp(App[None]):
         self._last_stats = summary
         self._render_stats(summary)
         if self.period is not Period.LIVE:
-            self._refresh_chart(self.service.snapshot(), summary=summary)
+            self._refresh_chart(self.service.snapshot(), summary=summary, render_stats=False)
 
     def _refresh_all(self, *, force: bool = False) -> None:
         snapshot = self.service.snapshot()
@@ -269,6 +275,7 @@ class PitchGuardApp(App[None]):
         *,
         force: bool = False,
         summary: StatsSummary | None = None,
+        render_stats: bool = True,
     ) -> None:
         now = datetime.now(UTC)
         mono_now = time.monotonic()
@@ -297,16 +304,19 @@ class PitchGuardApp(App[None]):
             end_label=chart_end_label(self.period.label, window.end),
         )
         self._base_query("#chart", PitchChart).set_data(data)
-        self._base_query("#chart-title", Static).update(
-            f"[bold]Pitch History[/]  [dim]{self.period.label} · {self.period.detail}[/]"
-        )
-        self._base_query("#chart-meta", Static).update(
+        title = f"[bold]Pitch History[/]  [dim]{self.period.label} · {self.period.detail}[/]"
+        self._set_static("chart-title", title, self._last_chart_title)
+        self._last_chart_title = title
+        chart_meta = (
             f"[dim]target  [/]{snapshot.config.range_label()}   "
             f"[dim]avg  [/]{format_hz(summary.avg_hz)}"
         )
+        self._set_static("chart-meta", chart_meta, self._last_chart_meta)
+        self._last_chart_meta = chart_meta
         self._last_chart_refresh = mono_now
         self._last_stats = summary
-        self._render_stats(summary)
+        if render_stats:
+            self._render_stats(summary)
 
     def _render_stats(self, summary: StatsSummary) -> None:
         values: list[tuple[str, str, str, str | None]] = [

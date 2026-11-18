@@ -102,6 +102,8 @@ class PitchChart(Widget):
         self._data: ChartData | None = None
         self._ascii = ascii_only
         self._chars = ASCII_CHARS if ascii_only else UNICODE_CHARS
+        self._scale: tuple[float, float] | None = None
+        self._scale_key: tuple[str, float, float] | None = None
 
     def set_ascii(self, ascii_only: bool) -> None:
         """Switch between Unicode and ASCII line characters."""
@@ -137,11 +139,7 @@ class PitchChart(Widget):
             "data": self._style("chart--data", "green"),
             "label": self._style("chart--label", "grey62"),
         }
-        low, high = nice_bounds(
-            [point.hz for segment in data.series for point in segment],
-            data.target_min,
-            data.target_max,
-        )
+        low, high = self._resolve_scale(data)
         margin = 6
         plot_width = max(1, width - margin)
         plot_height = max(2, height - 2)
@@ -231,6 +229,25 @@ class PitchChart(Widget):
         composed.append("\n")
         composed.append_text(left[:width])
         return composed
+
+    def _resolve_scale(self, data: ChartData) -> tuple[float, float]:
+        """Keep a stable Y scale so live movement does not make the chart blink.
+
+        The scale resets when the period or target range changes.  While data
+        stays inside it, small pitch changes never move the axis labels or the
+        horizontal reference lines.  Extreme values expand the scale only when
+        genuinely necessary.
+        """
+        key = (data.period_label, data.target_min, data.target_max)
+        values = [point.hz for segment in data.series for point in segment]
+        if self._scale is None or self._scale_key != key:
+            self._scale = nice_bounds(values, data.target_min, data.target_max)
+            self._scale_key = key
+        else:
+            low, high = self._scale
+            if values and (min(values) < low or max(values) > high):
+                self._scale = nice_bounds(values, data.target_min, data.target_max)
+        return self._scale
 
     def _compose_lines(
         self, grid: list[list[tuple[str, str]]], styles: dict[str, Style]

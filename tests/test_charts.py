@@ -127,6 +127,64 @@ async def test_chart_renders_axis_targets_and_data() -> None:
 
 
 @pytest.mark.asyncio
+async def test_chart_scale_stays_stable_while_live_data_moves() -> None:
+    app = ChartHost()
+    async with app.run_test(size=(80, 18)) as pilot:
+        chart = app.query_one("#chart", PitchChart)
+        chart.set_data(chart_data())
+        await pilot.pause()
+        original = chart._scale
+        moved = chart_data()
+        moved_points = tuple(
+            ChartPoint(point.timestamp, point.hz + 4.0) for point in moved.series[0]
+        )
+        chart.set_data(
+            ChartData(
+                period_label=moved.period_label,
+                start=moved.start,
+                end=moved.end,
+                series=(moved_points,),
+                target_min=moved.target_min,
+                target_max=moved.target_max,
+                avg_hz=moved.avg_hz,
+                in_range_pct=moved.in_range_pct,
+                start_label=moved.start_label,
+                end_label=moved.end_label,
+            )
+        )
+        await pilot.pause()
+        assert chart._scale == original
+
+
+@pytest.mark.asyncio
+async def test_chart_scale_expands_for_extreme_pitch() -> None:
+    app = ChartHost()
+    async with app.run_test(size=(80, 18)) as pilot:
+        chart = app.query_one("#chart", PitchChart)
+        chart.set_data(chart_data())
+        await pilot.pause()
+        original_high = chart._scale[1] if chart._scale else 0.0
+        extreme = chart_data()
+        chart.set_data(
+            ChartData(
+                period_label=extreme.period_label,
+                start=extreme.start,
+                end=extreme.end,
+                series=((ChartPoint(extreme.start, 480.0),),),
+                target_min=extreme.target_min,
+                target_max=extreme.target_max,
+                avg_hz=480.0,
+                in_range_pct=0.0,
+                start_label=extreme.start_label,
+                end_label=extreme.end_label,
+            )
+        )
+        await pilot.pause()
+        assert chart._scale is not None
+        assert chart._scale[1] > original_high
+
+
+@pytest.mark.asyncio
 async def test_chart_numeric_fallback_when_narrow() -> None:
     app = ChartHost()
     async with app.run_test(size=(30, 10)) as pilot:

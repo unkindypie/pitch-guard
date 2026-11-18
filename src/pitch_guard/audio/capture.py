@@ -96,12 +96,20 @@ class ThreadedPitchSource(ABC):
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop the worker and wait briefly for a clean exit."""
+        """Stop the worker and wait briefly for a clean exit.
+
+        The worker normally notices the stop event after the current audio block
+        and closes its own stream.  Forcing the stream closed from this thread
+        while a read is active can make PortAudio's ALSA backend print errors
+        during shutdown, so that is only a fallback for a wedged device.
+        """
         self._stop_event.set()
-        self._release()
         thread = self._thread
         if thread is not None and thread.is_alive():
             thread.join(timeout=3.0)
+            if thread.is_alive():
+                self._release()
+                thread.join(timeout=1.0)
         self._thread = None
         self._running.clear()
 
@@ -192,20 +200,25 @@ class MicrophonePitchSource(ThreadedPitchSource):
             )
             with self._stream_lock:
                 self._stream = stream
-            with stream:
-                while not self._stop_event.is_set():
-                    data, overflowed = stream.read(frame_samples)
-                    if overflowed:
-                        self._log.debug("Audio input overflow; dropping frame")
-                    if self._stop_event.is_set():
-                        break
-                    frame = data[:, 0] if data.ndim > 1 else data
-                    measurement = detector.detect(
-                        frame,
-                        monotonic=time.monotonic(),
-                        timestamp=datetime.now(UTC),
-                    )
-                    self._queue.put(measurement)
+            try:
+                with stream:
+                    while not self._stop_event.is_set():
+                        data, overflowed = stream.read(frame_samples)
+                        if overflowed:
+                            self._log.debug("Audio input overflow; dropping frame")
+                        if self._stop_event.is_set():
+                            break
+                        frame = data[:, 0] if data.ndim > 1 else data
+                        measurement = detector.detect(
+                            frame,
+                            monotonic=time.monotonic(),
+                            timestamp=datetime.now(UTC),
+                        )
+                        self._queue.put(measurement)
+            finally:
+                with self._stream_lock:
+                    if self._stream is stream:
+                        self._stream = None
         except Exception as error:  # noqa: BLE001 - audio backend errors vary
             if not self._stop_event.is_set():
                 self._set_error(_portaudio_message(error))

@@ -183,6 +183,7 @@ def test_microphone_source_lifecycle(monkeypatch: pytest.MonkeyPatch) -> None:
     assert source.error is None
     assert source.running is False
     assert fake.streams and fake.streams[0].closed
+    assert fake.streams[0].aborted is False
 
 
 def test_logging_rotates_to_a_file(tmp_path: Any) -> None:
