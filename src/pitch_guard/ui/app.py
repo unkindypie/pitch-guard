@@ -47,23 +47,20 @@ TWidget = TypeVar("TWidget", bound=Widget)
 COLOR_SUCCESS = "#9ece6a"
 COLOR_WARNING = "#e0af68"
 COLOR_ERROR = "#f7768e"
-COLOR_ACCENT = "#7dcfff"
+COLOR_ACCENT = "#d17aa4"
 COLOR_MUTED = "#7f8c98"
 COLOR_TEXT = "#c0caf5"
 LIVE_CHART_REFRESH_S = 0.1
 
 PITCH_GUARD_THEME = Theme(
     name="pitch-guard",
-    primary="#7aa2f7",
-    secondary="#bb9af7",
+    primary="#b85c86",
+    secondary="#9f4a70",
     warning=COLOR_WARNING,
     error=COLOR_ERROR,
     success=COLOR_SUCCESS,
     accent=COLOR_ACCENT,
     foreground=COLOR_TEXT,
-    background="#0f1117",
-    surface="#151922",
-    panel="#1a1f2b",
     dark=True,
 )
 
@@ -96,7 +93,7 @@ class PitchGuardApp(App[None]):
         demo: bool = False,
         ascii_only: bool = False,
     ) -> None:
-        super().__init__()
+        super().__init__(ansi_color=True)
         self.service = service
         self.demo = demo
         self.ascii_only = ascii_only

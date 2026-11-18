@@ -42,7 +42,7 @@ dashboard, chart, statistics, periodic atomic JSON writes
 | `service.py` | Connects audio, alerts, statistics and persistence |
 | `ui/app.py` | Textual dashboard, timers, key bindings |
 | `ui/settings.py` | Interactive settings modal with auto-save |
-| `ui/chart.py` | Small line-chart widget and numeric narrow fallback |
+| `ui/chart.py` | Small dotted chart widget and numeric narrow fallback |
 
 ## Alert timing
 

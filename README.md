@@ -21,7 +21,7 @@ your real history.
 - Presets for lower/higher voices plus a fully custom range.
 - Continuous-deviation alert timer with configurable duration and cooldown.
 - One short generated “bzz” per episode, with optional volume/mute.
-- Live, Day, Week, Month and 90-day line charts with target reference lines,
+- Live, Day, Week, Month and 90-day dotted charts with target reference lines,
   average line and silence gaps.
 - Time-weighted average, median, monitoring/speaking time, in-range percentage,
   alert count, previous-period improvement, daily streaks and personal bests.

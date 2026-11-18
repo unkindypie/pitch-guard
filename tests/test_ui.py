@@ -14,7 +14,7 @@ from pitch_guard.config import Config
 from pitch_guard.persistence import PitchGuardStorage
 from pitch_guard.service import PitchGuardService
 from pitch_guard.storage import DataPaths
-from pitch_guard.ui.app import PitchGuardApp
+from pitch_guard.ui.app import PITCH_GUARD_THEME, PitchGuardApp
 from pitch_guard.ui.chart import PitchChart
 from pitch_guard.ui.settings import SettingsScreen
 from tests.conftest import FakeBuzzer, FakeSource, make_measurement
@@ -61,6 +61,8 @@ async def test_dashboard_shows_pitch_and_range(tmp_path: Path) -> None:
     app, source, _buzzer, service = build_app(tmp_path)
     async with app.run_test(size=(110, 34)) as pilot:
         assert source.started == 1
+        assert app.ansi_color is True
+        assert PITCH_GUARD_THEME.primary == "#b85c86"
         push_samples(source)
         await pilot.pause(1.2)
         current = app.query_one("#metric-0", Static).content

@@ -1,16 +1,16 @@
-"""Small, dependency-free line chart widget for Textual.
+"""Small, dependency-free dotted pitch chart for Textual.
 
 Textual does not ship a line chart, and terminal plotting packages vary in how
 they handle axes, reference lines and gaps.  This widget deliberately keeps the
-rendering modest: thin line characters, labelled Y ticks, dashed target-range
-lines and a numeric fallback for very small terminals.
+rendering modest and calm: one dot per chart column (no moving line glyphs),
+labelled Y ticks, dashed target-range lines and a numeric fallback for very
+small terminals.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from itertools import pairwise
 from typing import ClassVar
 
 from rich.style import Style
@@ -28,8 +28,6 @@ UNICODE_CHARS = {
     "threshold": "┄",
     "average": "┈",
     "point": "•",
-    "rising": "╱",
-    "falling": "╲",
 }
 ASCII_CHARS = {
     "vertical": "|",
@@ -39,8 +37,6 @@ ASCII_CHARS = {
     "threshold": "-",
     "average": ".",
     "point": "*",
-    "rising": "/",
-    "falling": "\\",
 }
 
 MIN_WIDTH = 36
@@ -64,7 +60,7 @@ class ChartData:
 
 
 class PitchChart(Widget):
-    """Render pitch history as a clean terminal line chart."""
+    """Render pitch history as a calm dotted terminal chart."""
 
     DEFAULT_CSS = """
     PitchChart {
@@ -77,7 +73,7 @@ class PitchChart(Widget):
     PitchChart > .chart--axis { color: $text-muted; }
     PitchChart > .chart--threshold { color: $warning; }
     PitchChart > .chart--average { color: $accent 70%; }
-    PitchChart > .chart--data { color: $success; }
+    PitchChart > .chart--data { color: $accent; }
     PitchChart > .chart--label { color: $text-muted; }
     """
 
@@ -201,13 +197,8 @@ class PitchChart(Widget):
             if not compressed:
                 continue
             any_points = True
-            if len(compressed) == 1:
-                row, column = compressed[0]
+            for row, column in compressed:
                 put(row, column, self._chars["point"], "data")
-            for (row1, column1), (row2, column2) in pairwise(compressed):
-                self._draw_line(put, column1, row1, column2, row2)
-            row, column = compressed[-1]
-            put(row, column, self._chars["point"], "data")
 
         if not any_points:
             message = "waiting for voiced pitch"
@@ -297,24 +288,6 @@ class PitchChart(Widget):
             average = sum(columns[column]) / len(columns[column])
             result.append((self._y_row(average, low, high, plot_height), column))
         return result
-
-    def _draw_line(self, put, x1: int, y1: int, x2: int, y2: int) -> None:
-        """Draw a Bresenham line between two grid positions."""
-        dx = x2 - x1
-        dy = y2 - y1
-        steps = max(abs(dx), abs(dy))
-        if steps == 0:
-            return
-        if abs(dx) >= abs(dy) * 2:
-            character = self._chars["horizontal"]
-        elif abs(dy) >= abs(dx) * 2:
-            character = self._chars["vertical"]
-        else:
-            character = self._chars["rising"] if dx * dy >= 0 else self._chars["falling"]
-        for step in range(steps + 1):
-            x = round(x1 + dx * step / steps)
-            y = round(y1 + dy * step / steps)
-            put(y, x, character, "data")
 
     def _style(self, component: str, fallback: str) -> Style:
         try:

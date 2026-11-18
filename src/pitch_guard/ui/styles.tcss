@@ -1,13 +1,17 @@
+App {
+    background: ansi_default;
+}
+
 Screen {
     layout: vertical;
-    background: $background;
+    background: ansi_default;
     color: $foreground;
 }
 
 #topbar {
     height: 1;
     padding: 0 1;
-    background: $surface;
+    background: ansi_default;
 }
 
 #title {
@@ -52,7 +56,7 @@ Screen {
 #chart-header {
     height: 1;
     padding: 0 1;
-    background: $surface;
+    background: ansi_default;
 }
 
 #chart-title {
@@ -97,7 +101,7 @@ Screen {
 #footer {
     height: 1;
     padding: 0 1;
-    background: $surface;
+    background: ansi_default;
     color: $text-muted;
 }
 
@@ -156,12 +160,6 @@ Screen.narrow.short #stats-grid {
 }
 
 /* ASCII capability fallback. */
-Screen.ascii #topbar,
-Screen.ascii #chart-header,
-Screen.ascii #footer {
-    background: $surface;
-}
-
 Screen.ascii #metrics,
 Screen.ascii #chart-panel,
 Screen.ascii #stats-panel {
@@ -171,7 +169,7 @@ Screen.ascii #stats-panel {
 /* Settings modal */
 SettingsScreen {
     align: center middle;
-    background: $background 70%;
+    background: transparent;
 }
 
 #settings-dialog {
@@ -180,7 +178,7 @@ SettingsScreen {
     height: auto;
     max-height: 92%;
     border: round $border;
-    background: $surface;
+    background: ansi_default;
     padding: 1 2;
     layout: vertical;
 }
@@ -219,6 +217,7 @@ SettingsScreen {
 #settings-form Input,
 #settings-form Select {
     width: 1fr;
+    background: ansi_default;
 }
 
 #settings-actions {
@@ -231,7 +230,7 @@ SettingsScreen {
     margin-left: 2;
     min-width: 12;
     background: $primary;
-    color: $background;
+    color: #111111;
     text-style: bold;
 }
 

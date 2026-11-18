@@ -123,7 +123,9 @@ async def test_chart_renders_axis_targets_and_data() -> None:
         assert "170" in rendered
         assert "60s ago" in rendered
         assert "now" in rendered
-        assert "╱" in rendered or "╲" in rendered
+        assert rendered.count("•") >= 10
+        assert "╱" not in rendered
+        assert "╲" not in rendered
 
 
 @pytest.mark.asyncio
