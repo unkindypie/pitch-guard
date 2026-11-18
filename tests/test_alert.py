@@ -37,6 +37,14 @@ def test_no_alert_for_short_episode() -> None:
     assert not any(decision.should_buzz for decision in decisions)
 
 
+def test_exact_29_seconds_does_not_alert() -> None:
+    tracker = AlertTracker(3.0, 10.0)
+    decisions = feed_range(tracker, 0.0, 2.9, 140.0, duration=0.0)
+    assert not any(decision.should_buzz for decision in decisions)
+    decision = tracker.feed(make_sample(3.0, 140.0, duration_s=0.0))
+    assert decision.should_buzz is True
+
+
 def test_one_alert_after_continuous_threshold() -> None:
     tracker = AlertTracker(3.0, 10.0)
     decisions = feed_range(tracker, 0.0, 6.0, 140.0)

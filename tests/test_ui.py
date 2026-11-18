@@ -209,6 +209,26 @@ async def test_preset_selection_updates_range(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_arrow_keys_and_enter_navigate_settings(tmp_path: Path) -> None:
+    app, _source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        await pilot.press("s")
+        await pilot.pause(0.2)
+        settings = app.screen
+        assert isinstance(settings, SettingsScreen)
+        select = settings.query_one("#preset", Select)
+        select.focus()
+        await pilot.press("down")  # open the menu
+        await pilot.pause(0.1)
+        await pilot.press("down")  # move to the next preset
+        await pilot.press("enter")
+        await pilot.pause(0.2)
+        assert select.value == "low"
+        assert service.config.min_hz == 100.0
+        assert service.config.max_hz == 180.0
+
+
+@pytest.mark.asyncio
 async def test_q_quits_cleanly_and_stops_service(tmp_path: Path) -> None:
     app, source, buzzer, service = build_app(tmp_path)
     async with app.run_test(size=(110, 34)) as pilot:
