@@ -1,0 +1,30 @@
+# Run `uv run pre-commit install --install-hooks` once per clone.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --check
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff-lint
+        name: ruff lint
+        entry: uv run ruff check
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ty
+        name: ty type check
+        entry: uv run ty check
+        language: system
+        pass_filenames: false
+        types_or: [python, pyi]
+        require_serial: true
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        require_serial: true

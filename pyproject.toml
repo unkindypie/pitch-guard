@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pitch-guard"
+version = "0.1.0"
+description = "Python background voice pitch tracker with a live terminal dashboard."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Pitch-Guard contributors" }]
+keywords = ["pitch", "voice", "audio", "terminal", "textual"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Sound/Audio :: Analysis",
+]
+dependencies = [
+  "numpy>=1.26",
+  "textual>=2.0",
+]
+
+[project.optional-dependencies]
+audio = ["sounddevice>=0.4.6"]
+
+[project.scripts]
+pitch-guard = "pitch_guard.cli:main"
+
+[dependency-groups]
+dev = [
+  "pillow>=10.0",
+  "pre-commit>=3.7",
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "pytest-cov>=5.0",
+  "ruff>=0.9",
+  "ty>=0.0.1a15",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pitch_guard"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/pitch_guard", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::DeprecationWarning:pitch_guard.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["docs/demo_frames"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # bugbear
+  "BLE", # blind except
+  "UP",  # pyupgrade
+  "SIM", # simplify
+  "C4",  # comprehensions
+  "DTZ", # timezone-aware datetimes
+  "RET", # return statements
+  "PTH", # pathlib
+  "RUF", # ruff-specific
+  "T20", # print statements (scripts excluded below)
+  "ASYNC", # async correctness
+]
+ignore = ["E501"]
+allowed-confusables = ["╱", "╲"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["T20"]
+"scripts/*" = ["T20"]
+"src/pitch_guard/cli.py" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ty.environment]
+python-version = "3.11"
+extra-paths = ["src"]
+
+[tool.ty.src]
+include = ["src", "tests", "scripts"]
+exclude = ["docs/demo_frames"]
+
+[tool.ty.rules]
+unused-ignore-comment = "warn"
+
+[tool.coverage.run]
+source = ["pitch_guard"]

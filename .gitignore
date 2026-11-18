@@ -1,0 +1,29 @@
+# Python and uv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Test and tool caches
+.pytest_cache/
+.ruff_cache/
+.ty_cache/
+.coverage
+htmlcov/
+
+# Runtime logs and local data
+*.log
+*.log.*
+.pitch-guard/
+.demo-data/
+
+# Documentation capture intermediates
+docs/demo_frames/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp

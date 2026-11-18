@@ -1,0 +1,263 @@
+Screen {
+    layout: vertical;
+    background: $background;
+    color: $foreground;
+}
+
+#topbar {
+    height: 1;
+    padding: 0 1;
+    background: $surface;
+}
+
+#title {
+    width: 1fr;
+    text-style: bold;
+}
+
+#status {
+    width: auto;
+    text-align: right;
+}
+
+#meta {
+    height: 1;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+#metrics {
+    height: 4;
+    margin: 0 1;
+    padding: 0 1;
+    border: round $border;
+    layout: grid;
+    grid-size: 4 1;
+    grid-columns: 1fr 1fr 1fr 1fr;
+    grid-rows: 2;
+}
+
+.metric {
+    padding: 0 1;
+}
+
+#chart-panel {
+    height: 1fr;
+    min-height: 5;
+    margin: 0 1;
+    border: round $border;
+    layout: vertical;
+}
+
+#chart-header {
+    height: 1;
+    padding: 0 1;
+    background: $surface;
+}
+
+#chart-title {
+    width: 1fr;
+}
+
+#chart-meta {
+    width: auto;
+    text-align: right;
+}
+
+#chart {
+    height: 1fr;
+    min-height: 4;
+}
+
+#stats-panel {
+    height: 7;
+    margin: 0 1;
+    border: round $border;
+    padding: 0 1;
+    layout: vertical;
+}
+
+#stats-grid {
+    height: 4;
+    layout: grid;
+    grid-size: 4 2;
+    grid-columns: 1fr 1fr 1fr 1fr;
+    grid-rows: 2 2;
+}
+
+.stat {
+    padding: 0 1;
+}
+
+#stats-note {
+    height: 1;
+    color: $text-muted;
+}
+
+#footer {
+    height: 1;
+    padding: 0 1;
+    background: $surface;
+    color: $text-muted;
+}
+
+/* Narrow terminals: two metric columns and two statistics columns. */
+Screen.narrow #metrics {
+    height: 6;
+    grid-size: 2 2;
+    grid-rows: 2 2;
+}
+
+Screen.narrow .metric {
+    padding: 0;
+}
+
+Screen.narrow #stats-grid {
+    height: 8;
+    grid-size: 2 4;
+    grid-rows: 2 2 2 2;
+}
+
+Screen.narrow .stat {
+    padding: 0;
+}
+
+Screen.narrow #stats-panel {
+    height: 11;
+}
+
+Screen.narrow #meta {
+    height: 1;
+}
+
+/* Very short terminals: keep the chart and metrics, drop the daily note. */
+Screen.short #stats-panel {
+    height: 6;
+}
+
+Screen.short #stats-grid {
+    height: 4;
+    grid-size: 4 2;
+    grid-rows: 2 2;
+}
+
+Screen.short #stats-note {
+    display: none;
+}
+
+Screen.narrow.short #stats-panel {
+    height: 10;
+}
+
+Screen.narrow.short #stats-grid {
+    height: 8;
+    grid-size: 2 4;
+    grid-rows: 2 2 2 2;
+}
+
+/* ASCII capability fallback. */
+Screen.ascii #topbar,
+Screen.ascii #chart-header,
+Screen.ascii #footer {
+    background: $surface;
+}
+
+Screen.ascii #metrics,
+Screen.ascii #chart-panel,
+Screen.ascii #stats-panel {
+    border: ascii $border;
+}
+
+/* Settings modal */
+SettingsScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#settings-dialog {
+    width: 72;
+    max-width: 96%;
+    height: auto;
+    max-height: 92%;
+    border: round $border;
+    background: $surface;
+    padding: 1 2;
+    layout: vertical;
+}
+
+#settings-title {
+    height: 1;
+    text-style: bold;
+    color: $text;
+}
+
+#settings-subtitle {
+    height: 1;
+    color: $text-muted;
+}
+
+#settings-form {
+    height: auto;
+    padding: 1 0 0 0;
+}
+
+#settings-form .row {
+    height: 1;
+}
+
+#settings-form .field-label {
+    width: 26;
+    padding: 0 1 0 0;
+    color: $text-muted;
+}
+
+#settings-form .field-control {
+    width: 1fr;
+    height: 1;
+}
+
+#settings-form Input,
+#settings-form Select {
+    width: 1fr;
+}
+
+#settings-actions {
+    height: 2;
+    align-horizontal: right;
+    padding: 0;
+}
+
+#settings-actions Button {
+    margin-left: 2;
+    min-width: 12;
+    background: $primary;
+    color: $background;
+    text-style: bold;
+}
+
+#settings-status {
+    height: 1;
+    color: $text-muted;
+}
+
+#settings-status.error {
+    color: $error;
+}
+
+#settings-status.saved {
+    color: $success;
+}
+
+#settings-footer {
+    height: 1;
+    color: $text-muted;
+}
+
+.narrow #settings-dialog {
+    width: 96%;
+    padding: 1;
+}
+
+.narrow #settings-form .field-label {
+    width: 18;
+}
