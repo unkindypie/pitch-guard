@@ -85,6 +85,16 @@ pitch-guard --log-level DEBUG
 pitch-guard --version
 ```
 
+For a clean process/tmux name, use the installed command rather than `uv run`:
+
+```bash
+pitch-guard
+```
+
+`uv run` is a supervisor process and will remain named `uv` in tmux/process
+lists. The installed command sets its OS process title to `pitch-guard`, so tmux,
+`ps`, and `top` show `pitch-guard`.
+
 On launch, the dashboard starts monitoring immediately. Press `Space` to pause,
 `S` for settings, number keys to switch the chart period, and `Q` or `Ctrl+C` to
 quit cleanly. Settings are applied immediately and saved atomically; monitoring

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -34,6 +36,14 @@ def test_unicode_detection_respects_overrides(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setenv("TERM", "xterm")
     monkeypatch.setenv("PYTHONIOENCODING", "ascii")
     assert supports_unicode(DummyStream("utf-8")) is False
+
+
+def test_cli_sets_process_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    fake = SimpleNamespace(setproctitle=lambda name: calls.append(name))
+    monkeypatch.setitem(sys.modules, "setproctitle", fake)
+    cli._set_process_name()
+    assert calls == ["pitch-guard"]
 
 
 def test_cli_parser_options() -> None:

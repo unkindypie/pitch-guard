@@ -76,8 +76,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _set_process_name() -> None:
+    """Give the running process a stable OS-level name for tmux/ps/top."""
+    try:
+        import setproctitle
+    except ImportError:
+        return
+    try:
+        setproctitle.setproctitle("pitch-guard")
+    except Exception:  # noqa: BLE001 - best-effort title change per platform
+        return
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run Pitch-Guard and return a process exit code."""
+    _set_process_name()
     arguments = build_parser().parse_args(argv)
     root = resolve_data_home(arguments.data_dir)
     if arguments.demo and arguments.data_dir is None:
