@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar, TypeVar
 
 from rich.markup import escape
@@ -50,7 +50,6 @@ COLOR_ERROR = "#f7768e"
 COLOR_ACCENT = "#d17aa4"
 COLOR_MUTED = "#7f8c98"
 COLOR_TEXT = "#c0caf5"
-LIVE_CHART_REFRESH_S = 0.1
 
 PITCH_GUARD_THEME = Theme(
     name="pitch-guard",
@@ -99,7 +98,7 @@ class PitchGuardApp(App[None]):
         self.ascii_only = ascii_only
         self.period = Period.LIVE
         self._shutdown_done = False
-        self._last_chart_refresh = 0.0
+        self._live_chart_bucket_end: float | None = None
         self._last_stats: StatsSummary | None = None
         self._daily_cache: list[DailySummary] = []
         self._daily_cache_at = 0.0
@@ -181,10 +180,7 @@ class PitchGuardApp(App[None]):
             LOG.exception("Failed to process audio measurements")
         snapshot = self.service.snapshot()
         self._render_snapshot(snapshot, time.monotonic())
-        if (
-            self.period is Period.LIVE
-            and time.monotonic() - self._last_chart_refresh >= LIVE_CHART_REFRESH_S
-        ):
+        if self.period is Period.LIVE:
             self._refresh_chart(snapshot, render_stats=False)
 
     def _stats_tick(self) -> None:
@@ -276,29 +272,40 @@ class PitchGuardApp(App[None]):
     ) -> None:
         now = datetime.now(UTC)
         mono_now = time.monotonic()
-        window = period_window(self.period, now)
-        if summary is None:
-            summary = self.service.summary(self.period, now, mono_now, self._daily_cache)
         if self.period is Period.LIVE:
+            completed_second = float(int(mono_now))
+            if not force and completed_second == self._live_chart_bucket_end:
+                return
+            self._live_chart_bucket_end = completed_second
+            window_end = datetime.fromtimestamp(int(now.timestamp()), tz=UTC)
+            window_start = window_end - timedelta(seconds=60)
+            if summary is None:
+                summary = self.service.summary(self.period, now, mono_now, self._daily_cache)
             series = build_live_series(
                 self.service.live.samples(),
-                mono_now - 60.0,
-                mono_now,
+                completed_second - 60.0,
+                completed_second,
+                bucket_seconds=1.0,
             )
         else:
+            window = period_window(self.period, now)
+            if summary is None:
+                summary = self.service.summary(self.period, now, mono_now, self._daily_cache)
             buckets = self.service.history.snapshot(now)
             series = build_history_series(buckets, window.start, window.end)
+            window_start = window.start
+            window_end = window.end
         data = ChartData(
             period_label=self.period.label,
-            start=window.start,
-            end=window.end,
+            start=window_start,
+            end=window_end,
             series=tuple(tuple(segment) for segment in series),
             target_min=snapshot.config.min_hz,
             target_max=snapshot.config.max_hz,
             avg_hz=summary.avg_hz,
             in_range_pct=summary.in_range_pct,
-            start_label=chart_start_label(self.period.label, window.start, window.end),
-            end_label=chart_end_label(self.period.label, window.end),
+            start_label=chart_start_label(self.period.label, window_start, window_end),
+            end_label=chart_end_label(self.period.label, window_end),
         )
         self._base_query("#chart", PitchChart).set_data(data)
         title = f"[bold]Pitch History[/]  [dim]{self.period.label} · {self.period.detail}[/]"
@@ -310,7 +317,6 @@ class PitchGuardApp(App[None]):
         )
         self._set_static("chart-meta", chart_meta, self._last_chart_meta)
         self._last_chart_meta = chart_meta
-        self._last_chart_refresh = mono_now
         self._last_stats = summary
         if render_stats:
             self._render_stats(summary)

@@ -30,12 +30,20 @@ def build_live_series(
     end_monotonic: float,
     *,
     gap_seconds: float = LIVE_GAP_SECONDS,
+    bucket_seconds: float = 0.0,
 ) -> list[list[ChartPoint]]:
-    """Split live samples into connected voiced segments.
+    """Split live samples into calm, non-interpolated chart segments.
 
-    Any silent/unvoiced frame or a gap longer than ``gap_seconds`` starts a new
-    segment, so the chart never draws through silence or a processing stall.
+    With ``bucket_seconds <= 0`` every voiced sample becomes a point, breaking on
+    silence or a gap longer than ``gap_seconds``.  The live dashboard uses
+    ``bucket_seconds=1.0``: one average point per completed one-second bucket,
+    aligned to stable monotonic boundaries.  The incomplete newest bucket is
+    deliberately omitted so the rightmost dot does not jitter every frame.
     """
+    if bucket_seconds > 0:
+        return _build_bucketed_live_series(
+            samples, start_monotonic, end_monotonic, gap_seconds, bucket_seconds
+        )
     series: list[list[ChartPoint]] = []
     current: list[ChartPoint] = []
     previous_voiced: ClassifiedSample | None = None
@@ -57,6 +65,51 @@ def build_live_series(
             current = []
         current.append(ChartPoint(timestamp=sample.timestamp, hz=sample.hz))
         previous_voiced = sample
+    if current:
+        series.append(current)
+    return series
+
+
+def _build_bucketed_live_series(
+    samples: list[ClassifiedSample],
+    start_monotonic: float,
+    end_monotonic: float,
+    gap_seconds: float,
+    bucket_seconds: float,
+) -> list[list[ChartPoint]]:
+    """Aggregate live samples into completed, globally aligned time buckets."""
+    bucket_count = int((end_monotonic - start_monotonic) / bucket_seconds) + 1
+    first_bucket = int(start_monotonic // bucket_seconds)
+    buckets: dict[int, list[tuple[float, datetime]]] = {}
+    for sample in samples:
+        if not (start_monotonic <= sample.monotonic <= end_monotonic):
+            continue
+        index = int(sample.monotonic // bucket_seconds)
+        bucket_end = (index + 1) * bucket_seconds
+        if bucket_end > end_monotonic:
+            continue
+        bucket = buckets.setdefault(index, [])
+        if sample.voiced and sample.hz is not None:
+            bucket.append((sample.hz, sample.timestamp))
+    series: list[list[ChartPoint]] = []
+    current: list[ChartPoint] = []
+    previous_index: int | None = None
+    for index in range(first_bucket, first_bucket + bucket_count):
+        bucket = buckets.get(index)
+        if not bucket:
+            if current:
+                series.append(current)
+                current = []
+            previous_index = None
+            continue
+        if previous_index is not None and (index - previous_index) * bucket_seconds > gap_seconds:
+            if current:
+                series.append(current)
+            current = []
+        hz = sum(value for value, _ in bucket) / len(bucket)
+        timestamp = sum((moment.timestamp() for _, moment in bucket)) / len(bucket)
+        current.append(ChartPoint(timestamp=datetime.fromtimestamp(timestamp, tz=UTC), hz=hz))
+        previous_index = index
     if current:
         series.append(current)
     return series

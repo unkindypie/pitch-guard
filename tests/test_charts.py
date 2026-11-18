@@ -46,6 +46,27 @@ def test_live_series_filters_outside_window() -> None:
     assert len(series[0]) == 1
 
 
+def test_live_bucketed_series_omits_partial_bucket_and_keeps_gaps() -> None:
+    samples = []
+    values = {
+        0: 200.0,
+        1: 210.0,
+        2: None,
+        3: 220.0,
+        4: 230.0,
+        5: 240.0,
+    }
+    for bucket, hz in values.items():
+        for parts in (0.25, 0.5, 0.75):
+            samples.append(make_sample(bucket + parts, hz))
+    series = build_live_series(samples, 0.0, 5.5, bucket_seconds=1.0)
+    assert [len(segment) for segment in series] == [2, 2]
+    assert series[0][0].hz == pytest.approx(200.0)
+    assert series[0][1].hz == pytest.approx(210.0)
+    assert series[1][0].hz == pytest.approx(220.0)
+    assert all(point.hz != 240.0 for segment in series for point in segment)
+
+
 def make_bucket(start: datetime, hz: float | None, voiced: float = 60.0) -> Bucket:
     item = Bucket(start=start, resolution_s=300, monitoring_s=300.0, voiced_s=voiced)
     if hz is not None and voiced > 0:

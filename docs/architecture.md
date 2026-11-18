@@ -111,5 +111,8 @@ a temporary file, `fsync`, and atomic replacement. Corrupt files are copied to
 - Statistics are computed from already-aggregated buckets; no audio frames are
   passed into widgets.
 - Live chart data is tightened to terminal width before drawing.
+- Live chart points are completed one-second buckets, not raw frames, so the
+  newest dot does not jitter on every audio callback.
+- The chart repaints only when its visible character grid actually changes.
 - Narrow terminals get a numeric chart fallback.
 - `--ascii` and automatic encoding detection switch borders and chart glyphs.

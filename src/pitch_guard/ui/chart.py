@@ -100,6 +100,7 @@ class PitchChart(Widget):
         self._chars = ASCII_CHARS if ascii_only else UNICODE_CHARS
         self._scale: tuple[float, float] | None = None
         self._scale_key: tuple[str, float, float] | None = None
+        self._last_plain: str | None = None
 
     def set_ascii(self, ascii_only: bool) -> None:
         """Switch between Unicode and ASCII line characters."""
@@ -107,6 +108,7 @@ class PitchChart(Widget):
             return
         self._ascii = ascii_only
         self._chars = ASCII_CHARS if ascii_only else UNICODE_CHARS
+        self._last_plain = None
         self.refresh()
 
     def set_data(self, data: ChartData) -> None:
@@ -114,6 +116,11 @@ class PitchChart(Widget):
         if self._data == data:
             return
         self._data = data
+        if self.size.width > 0 and self.size.height > 0:
+            plain = self.render().plain
+            if plain == self._last_plain:
+                return
+            self._last_plain = plain
         self.refresh()
 
     def render(self) -> Text:
