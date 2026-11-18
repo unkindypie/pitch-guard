@@ -144,6 +144,22 @@ async def test_settings_edit_is_validated_and_saved(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_idle_timeout_setting_is_saved(tmp_path: Path) -> None:
+    app, _source, _buzzer, service = build_app(tmp_path)
+    async with app.run_test(size=(110, 34)) as pilot:
+        await pilot.press("s")
+        await pilot.pause(0.2)
+        settings = app.screen
+        assert isinstance(settings, SettingsScreen)
+        idle_input = settings.query_one("#idle-timeout", Input)
+        idle_input.focus()
+        idle_input.value = "30"
+        await pilot.pause(0.2)
+        assert service.config.idle_timeout_s == 30.0
+        assert service.storage.paths.config.exists()
+
+
+@pytest.mark.asyncio
 async def test_invalid_settings_are_not_saved(tmp_path: Path) -> None:
     app, _source, _buzzer, service = build_app(tmp_path)
     async with app.run_test(size=(110, 34)) as pilot:
@@ -335,6 +351,18 @@ async def test_idle_mode_space_resumes_without_repausing(tmp_path: Path) -> None
         assert app._idle_mode
         await pilot.press("space")
         await pilot.pause(0.2)
+        assert app._idle_mode is False
+        assert service.paused is False
+
+
+@pytest.mark.asyncio
+async def test_idle_timeout_zero_disables_idle_mode(tmp_path: Path) -> None:
+    app, _source, _buzzer, service = build_app(tmp_path, config=Config(idle_timeout_s=0.0))
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause(0.2)
+        app._last_activity = time.monotonic() - 3600.0
+        app._check_idle()
+        await pilot.pause(0.1)
         assert app._idle_mode is False
         assert service.paused is False
 

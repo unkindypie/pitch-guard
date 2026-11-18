@@ -53,7 +53,6 @@ COLOR_ERROR = "#f7768e"
 COLOR_ACCENT = "#d17aa4"
 COLOR_MUTED = "#7f8c98"
 COLOR_TEXT = "#c0caf5"
-IDLE_TIMEOUT_S = 60.0
 
 PITCH_GUARD_THEME = Theme(
     name="pitch-guard",
@@ -159,6 +158,7 @@ class PitchGuardApp(App[None]):
             if self._idle_mode and isinstance(event, events.Key) and event.key == "space":
                 # Space wakes the app but should not immediately toggle it back
                 # into manual pause after the automatic resume.
+                self._last_activity = time.monotonic()
                 self._leave_idle()
                 event.stop()
                 return
@@ -173,7 +173,10 @@ class PitchGuardApp(App[None]):
     def _check_idle(self) -> None:
         if self._idle_mode or self._shutdown_done or self.service.paused:
             return
-        if time.monotonic() - self._last_activity >= IDLE_TIMEOUT_S:
+        timeout = self.service.config.idle_timeout_s
+        if timeout <= 0:
+            return
+        if time.monotonic() - self._last_activity >= timeout:
             self._enter_idle()
 
     def _enter_idle(self) -> None:
@@ -187,7 +190,10 @@ class PitchGuardApp(App[None]):
         self._update_footer()
         self._last_stats = None
         self._refresh_all(force=True)
-        LOG.info("Idle mode: no keyboard or mouse activity for %.0fs", IDLE_TIMEOUT_S)
+        LOG.info(
+            "Idle mode: no keyboard or mouse activity for %s",
+            self._idle_timeout_label(),
+        )
 
     def _leave_idle(self) -> None:
         if not self._idle_mode:
@@ -206,15 +212,23 @@ class PitchGuardApp(App[None]):
         dashboard = self._dashboard or self.screen
         dashboard.set_class(self._idle_mode, "idle")
 
+    def _idle_timeout_label(self) -> str:
+        timeout = self.service.config.idle_timeout_s
+        if timeout >= 60 and timeout % 60 == 0:
+            minutes = int(timeout // 60)
+            return f"{minutes} minute" + ("s" if minutes != 1 else "")
+        return f"{timeout:g} second" + ("s" if timeout != 1 else "")
+
     def _update_idle_overlay(self) -> None:
         overlay = self._base_query("#idle-overlay", Static)
         body = self._base_query("#chart-body", Vertical)
         width = body.size.width
         height = body.size.height
+        timeout_label = self._idle_timeout_label()
         if self.ascii_only or width < 32 or height < 8:
             content = (
                 f"[bold {COLOR_ACCENT}]IDLE[/]\n"
-                "[dim]Monitoring paused after 1 minute\n"
+                f"[dim]Monitoring paused after {timeout_label}\n"
                 "Press any key or move the mouse to resume[/]"
             )
         else:
@@ -227,7 +241,7 @@ class PitchGuardApp(App[None]):
             )
             content = (
                 f"[bold {COLOR_ACCENT}]{banner}[/]\n\n"
-                "[dim]No keyboard or mouse activity for 1 minute.\n"
+                f"[dim]No keyboard or mouse activity for {timeout_label}.\n"
                 "Monitoring is paused to save resources.\n"
                 "Press any key or move the mouse to resume.[/]"
             )
@@ -267,7 +281,7 @@ class PitchGuardApp(App[None]):
         self._base_query("#chart", PitchChart).set_ascii(self.ascii_only)
 
     def _tick(self) -> None:
-        if self._idle_mode:
+        if self._shutdown_done or not self.is_running or self._idle_mode:
             return
         try:
             self.service.poll()
@@ -279,6 +293,8 @@ class PitchGuardApp(App[None]):
             self._refresh_chart(snapshot, render_stats=False)
 
     def _stats_tick(self) -> None:
+        if self._shutdown_done or not self.is_running:
+            return
         self._check_idle()
         if self._idle_mode:
             return
@@ -334,7 +350,7 @@ class PitchGuardApp(App[None]):
         current_hz = current.hz if current is not None and current.voiced else None
         if self._idle_mode:
             current_value = self._dash()
-            current_note = "no input for 1m"
+            current_note = "no recent input"
             current_color = COLOR_ACCENT
         else:
             current_value = format_hz(current_hz) if current_hz is not None else self._dash()

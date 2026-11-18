@@ -36,6 +36,7 @@ def test_config_defaults_match_requirements() -> None:
     assert config.min_hz == DEFAULT_MIN_HZ == 170.0
     assert config.max_hz == DEFAULT_MAX_HZ == 250.0
     assert config.alert_duration_s == 3.0
+    assert config.idle_timeout_s == 60.0
     assert config.preset == PRESET_DEFAULT
 
 
@@ -52,6 +53,11 @@ def test_config_validation_and_custom_preset() -> None:
         Config(alert_cooldown_s=-1.0).validate()
     with pytest.raises(ConfigError):
         Config(volume=101).validate()
+    with pytest.raises(ConfigError):
+        Config(idle_timeout_s=-1.0).validate()
+    with pytest.raises(ConfigError):
+        Config(idle_timeout_s=3601.0).validate()
+    assert Config(idle_timeout_s=0.0).validate().idle_timeout_s == 0.0
 
 
 def test_named_presets_and_microphone_normalisation() -> None:
@@ -65,7 +71,13 @@ def test_named_presets_and_microphone_normalisation() -> None:
 def test_config_roundtrip_atomically(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
     store = ConfigStore(path)
-    config = Config(preset="custom", min_hz=175.0, max_hz=260.0, volume=55)
+    config = Config(
+        preset="custom",
+        min_hz=175.0,
+        max_hz=260.0,
+        volume=55,
+        idle_timeout_s=45.0,
+    )
     store.save(config)
     assert not list(tmp_path.glob("*.tmp"))
     loaded = store.load()

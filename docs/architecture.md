@@ -122,7 +122,7 @@ a temporary file, `fsync`, and atomic replacement. Corrupt files are copied to
   recorded the alert count.
 - Narrow terminals get a numeric chart fallback.
 - `--ascii` and automatic encoding detection switch borders and chart glyphs.
-- The App-level event hook tracks keyboard, mouse and paste activity. After 60
-  seconds without input the service is paused and an absolute-positioned overlay
-  covers the chart; the next input event resumes it. Manual pause state is kept
-  separate and is not auto-resumed.
+- The App-level event hook tracks keyboard, mouse and paste activity. After the
+  configurable idle timeout (default 60 s; 0 disables it), the service is paused
+  and an absolute-positioned overlay covers the chart; the next input event
+  resumes it. Manual pause state is kept separate and is not auto-resumed.

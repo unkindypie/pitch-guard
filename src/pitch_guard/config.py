@@ -19,6 +19,7 @@ DEFAULT_MAX_HZ: Final[float] = 250.0
 DEFAULT_ALERT_DURATION_S: Final[float] = 3.0
 DEFAULT_ALERT_COOLDOWN_S: Final[float] = 10.0
 DEFAULT_VOLUME: Final[int] = 70
+DEFAULT_IDLE_TIMEOUT_S: Final[float] = 60.0
 
 PITCH_FLOOR_HZ: Final[float] = 50.0
 PITCH_CEILING_HZ: Final[float] = 600.0
@@ -26,6 +27,8 @@ MIN_ALERT_DURATION_S: Final[float] = 0.5
 MAX_ALERT_DURATION_S: Final[float] = 60.0
 MIN_ALERT_COOLDOWN_S: Final[float] = 0.0
 MAX_ALERT_COOLDOWN_S: Final[float] = 600.0
+MIN_IDLE_TIMEOUT_S: Final[float] = 0.0
+MAX_IDLE_TIMEOUT_S: Final[float] = 3600.0
 
 PRESET_DEFAULT: Final[str] = "default"
 PRESET_LOW: Final[str] = "low"
@@ -63,6 +66,7 @@ class Config:
     alert_cooldown_s: float = DEFAULT_ALERT_COOLDOWN_S
     microphone: str | None = None
     volume: int = DEFAULT_VOLUME
+    idle_timeout_s: float = DEFAULT_IDLE_TIMEOUT_S
 
     def range_label(self) -> str:
         """Compact target-range label used by the dashboard."""
@@ -75,6 +79,7 @@ class Config:
         duration = _finite_float(self.alert_duration_s, "Alert duration")
         cooldown = _finite_float(self.alert_cooldown_s, "Alert cooldown")
         volume = _finite_float(float(self.volume), "Alert volume")
+        idle_timeout = _finite_float(self.idle_timeout_s, "Idle timeout")
 
         if not PITCH_FLOOR_HZ <= min_hz <= PITCH_CEILING_HZ:
             raise ConfigError(
@@ -98,6 +103,11 @@ class Config:
             )
         if not 0 <= volume <= 100:
             raise ConfigError("Alert volume must be between 0 and 100")
+        if not MIN_IDLE_TIMEOUT_S <= idle_timeout <= MAX_IDLE_TIMEOUT_S:
+            raise ConfigError(
+                f"Idle timeout must be between {MIN_IDLE_TIMEOUT_S:g} and "
+                f"{MAX_IDLE_TIMEOUT_S:g} seconds (0 disables idle mode)"
+            )
 
         preset = self.preset if self.preset in PITCH_PRESETS else PRESET_CUSTOM
         if preset in PITCH_PRESETS:
@@ -119,6 +129,7 @@ class Config:
             alert_cooldown_s=round(cooldown, 1),
             microphone=microphone,
             volume=round(volume),
+            idle_timeout_s=round(idle_timeout, 1),
         )
 
     def with_preset(self, preset: str) -> Config:
@@ -147,6 +158,7 @@ class Config:
             alert_cooldown_s=_number(payload.get("alert_cooldown_s"), DEFAULT_ALERT_COOLDOWN_S),
             microphone=_optional_string(payload.get("microphone")),
             volume=int(_number(payload.get("volume"), DEFAULT_VOLUME)),
+            idle_timeout_s=_number(payload.get("idle_timeout_s"), DEFAULT_IDLE_TIMEOUT_S),
         )
 
 

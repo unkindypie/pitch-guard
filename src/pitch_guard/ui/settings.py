@@ -125,6 +125,16 @@ class SettingsScreen(ModalScreen[Config | None]):
                     ),
                 )
                 yield _row(
+                    "Idle after (s)",
+                    Input(
+                        _format_number(self._config.idle_timeout_s),
+                        id="idle-timeout",
+                        type="number",
+                        select_on_focus=True,
+                        compact=True,
+                    ),
+                )
+                yield _row(
                     "Microphone",
                     Select(
                         microphone_options,
@@ -255,6 +265,7 @@ class SettingsScreen(ModalScreen[Config | None]):
             ),
             microphone=microphone,
             volume=_integer(self.query_one("#volume", Input).value, "Alert volume"),
+            idle_timeout_s=_number(self.query_one("#idle-timeout", Input).value, "Idle timeout"),
         )
 
     def _apply_draft(self) -> None:

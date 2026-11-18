@@ -103,8 +103,9 @@ On launch, the dashboard starts monitoring immediately. Press `Space` to pause,
 `S` for settings, number keys to switch the chart period, and `Q` or `Ctrl+C` to
 quit cleanly.
 
-If there is no keyboard or mouse activity for one minute, Pitch-Guard enters
-**IDLE** mode: microphone analysis stops, the statistics panel is hidden, and a
+If there is no keyboard or mouse activity for the configured idle timeout
+(60 seconds by default; adjustable in Settings, `0` disables it), Pitch-Guard
+enters **IDLE** mode: microphone analysis stops, the statistics panel is hidden, and a
 large centered overlay appears over the chart. Press any key or move the mouse to
 resume. A manual pause is never overwritten by idle mode. Settings are applied immediately and saved atomically; monitoring
 and statistics stop before the process exits.
