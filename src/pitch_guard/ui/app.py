@@ -22,6 +22,7 @@ from textual.widgets import Static
 from pitch_guard.aggregation import DailySummary
 from pitch_guard.audio.capture import MicrophonePitchSource, query_input_devices
 from pitch_guard.charts import (
+    LIVE_BUCKET_SECONDS,
     ChartPoint,
     build_history_series,
     build_live_series,
@@ -405,7 +406,7 @@ class PitchGuardApp(App[None]):
                 self.service.live.samples(),
                 completed_second - 60.0,
                 completed_second,
-                bucket_seconds=1.0,
+                bucket_seconds=LIVE_BUCKET_SECONDS,
             )
             alerts = [
                 ChartPoint(event.timestamp, event.hz)

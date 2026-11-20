@@ -67,6 +67,13 @@ def test_live_bucketed_series_omits_partial_bucket_and_keeps_gaps() -> None:
     assert all(point.hz != 240.0 for segment in series for point in segment)
 
 
+def test_live_quarter_second_buckets_are_dense() -> None:
+    samples = [make_sample(index * 0.05, 200.0) for index in range(80)]
+    series = build_live_series(samples, 0.0, 4.0, bucket_seconds=0.25)
+    points = [point for segment in series for point in segment]
+    assert len(points) >= 15
+
+
 def make_bucket(start: datetime, hz: float | None, voiced: float = 60.0) -> Bucket:
     item = Bucket(start=start, resolution_s=300, monitoring_s=300.0, voiced_s=voiced)
     if hz is not None and voiced > 0:

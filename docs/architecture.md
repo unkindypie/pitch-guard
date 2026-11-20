@@ -114,8 +114,9 @@ a temporary file, `fsync`, and atomic replacement. Corrupt files are copied to
 - Statistics are computed from already-aggregated buckets; no audio frames are
   passed into widgets.
 - Live chart data is tightened to terminal width before drawing.
-- Live chart points are completed one-second buckets, not raw frames, so the
-  newest dot does not jitter on every audio callback.
+- Live chart points are completed quarter-second buckets, not raw frames, so
+  the newest dot does not jitter on every audio callback while the trace stays
+  dense.
 - The chart repaints only when its visible character grid actually changes.
 - Alert markers use a large red dot. Live alerts carry exact wall-clock
   timestamps; historical markers are placed at the midpoint of the bucket that

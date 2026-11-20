@@ -14,6 +14,7 @@ from pitch_guard.aggregation import Bucket
 from pitch_guard.models import ClassifiedSample
 
 LIVE_GAP_SECONDS = 1.5
+LIVE_BUCKET_SECONDS = 0.25
 
 
 @dataclass(frozen=True, slots=True)

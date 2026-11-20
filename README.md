@@ -23,8 +23,8 @@ your real history.
 - Continuous-deviation alert timer with configurable duration and cooldown.
 - One short generated “bzz” per episode, with optional volume/mute.
 - Live, Day, Week, Month and 90-day dotted charts with target reference lines,
-  average line and silence gaps. The Live view aggregates completed one-second
-  buckets and repaints only when the visible dots change, avoiding flicker.
+  average line and silence gaps. The Live view uses completed quarter-second
+  voice buckets and repaints only when the visible dots change, avoiding flicker.
 - Alerts appear as large red dots on the chart; Live markers use the exact alert
   time, while historical markers use the alert's aggregation bucket midpoint.
 - Time-weighted average, median, monitoring/speaking time, in-range percentage,
