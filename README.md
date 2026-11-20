@@ -24,7 +24,8 @@ your real history.
 - One short generated “bzz” per episode, with optional volume/mute.
 - Live, Day, Week, Month and 90-day dotted charts with target reference lines,
   average line and silence gaps. The Live view uses completed quarter-second
-  voice buckets and repaints only when the visible dots change, avoiding flicker.
+  voice buckets rendered with braille sub-cell dots, and repaints only when the
+  visible dots change, avoiding flicker.
 - Alerts appear as large red dots on the chart; Live markers use the exact alert
   time, while historical markers use the alert's aggregation bucket midpoint.
 - Time-weighted average, median, monitoring/speaking time, in-range percentage,

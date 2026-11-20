@@ -441,6 +441,7 @@ class PitchGuardApp(App[None]):
             start_label=chart_start_label(self.period.label, window_start, window_end),
             end_label=chart_end_label(self.period.label, window_end),
             alerts=tuple(alerts),
+            dense=self.period is Period.LIVE,
         )
         self._base_query("#chart", PitchChart).set_data(data)
         title = f"[bold]Pitch History[/]  [dim]{self.period.label} · {self.period.detail}[/]"

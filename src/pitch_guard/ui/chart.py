@@ -2,9 +2,9 @@
 
 Textual does not ship a line chart, and terminal plotting packages vary in how
 they handle axes, reference lines and gaps.  This widget deliberately keeps the
-rendering modest and calm: one dot per chart column (no moving line glyphs),
-labelled Y ticks, dashed target-range lines and a numeric fallback for very
-small terminals.
+rendering modest and calm: dot traces (braille sub-cell dots for the dense Live
+trace), labelled Y ticks, dashed target-range lines and a numeric fallback for
+very small terminals.
 """
 
 from __future__ import annotations
@@ -60,6 +60,7 @@ class ChartData:
     start_label: str
     end_label: str
     alerts: tuple[ChartPoint, ...] = ()
+    dense: bool = False
 
 
 class PitchChart(Widget):
@@ -204,15 +205,18 @@ class PitchChart(Widget):
                     put(row, column, self._chars["average"], "average")
 
         any_points = False
-        for segment in data.series:
-            compressed = self._compress(
-                segment, data.start, data.end, margin, plot_width, low, high, plot_height
-            )
-            if not compressed:
-                continue
-            any_points = True
-            for row, column in compressed:
-                put(row, column, self._chars["point"], "data")
+        if data.dense and not self._ascii:
+            any_points = self._plot_braille(put, data, margin, plot_width, plot_height, low, high)
+        else:
+            for segment in data.series:
+                compressed = self._compress(
+                    segment, data.start, data.end, margin, plot_width, low, high, plot_height
+                )
+                if not compressed:
+                    continue
+                any_points = True
+                for row, column in compressed:
+                    put(row, column, self._chars["point"], "data")
 
         for alert in data.alerts:
             if not data.start <= alert.timestamp <= data.end:
@@ -241,6 +245,40 @@ class PitchChart(Widget):
         composed.append("\n")
         composed.append_text(left[:width])
         return composed
+
+    def _plot_braille(
+        self,
+        put,
+        data: ChartData,
+        margin: int,
+        plot_width: int,
+        plot_height: int,
+        low: float,
+        high: float,
+    ) -> bool:
+        """Plot Live points at 2x4 sub-cell resolution using braille glyphs."""
+        data_rows = max(1, plot_height - 1)
+        sub_width = max(1, plot_width * 2)
+        sub_height = data_rows * 4
+        bits: dict[tuple[int, int], int] = {}
+        span = (data.end - data.start).total_seconds()
+        if span <= 0:
+            return False
+        for segment in data.series:
+            for point in segment:
+                fraction_x = (point.timestamp - data.start).total_seconds() / span
+                fraction_y = (high - min(high, max(low, point.hz))) / (high - low)
+                x = round(min(1.0, max(0.0, fraction_x)) * (sub_width - 1))
+                y = round(min(1.0, max(0.0, fraction_y)) * (sub_height - 1))
+                row, inner_row = divmod(y, 4)
+                column = margin + x // 2
+                inner_column = x % 2
+                bit = (1, 2, 4, 64)[inner_row] if inner_column == 0 else (8, 16, 32, 128)[inner_row]
+                key = (row, column)
+                bits[key] = bits.get(key, 0) | bit
+        for (row, column), value in bits.items():
+            put(row, column, chr(0x2800 + value), "data")
+        return bool(bits)
 
     def _resolve_scale(self, data: ChartData) -> tuple[float, float]:
         """Keep a stable Y scale so live movement does not make the chart blink.
